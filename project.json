@@ -12,6 +12,9 @@
   // The parser is a standalone carve-out unit: it may only depend on
   // lexer.c3l. See docs/DESIGN.md section 1.5.
   "sources": [ "src/parser/**", "src/c3vet/**" ],
+  // Testdata lives in testdata/ at the project root, NOT under test/:
+  // those files are read by the harness, never compiled into the test
+  // binary. c3c has no exclude glob, so separate directories is the way.
   "test-sources": [ "test/**" ],
   "build-dir": "build",
   "output": "build",

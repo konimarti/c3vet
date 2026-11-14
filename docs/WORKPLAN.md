@@ -61,10 +61,17 @@ orchestrator-owned: if you need one changed, say so and stop — do not edit it.
 | 0.10 | `src/cli/` — args, target resolution, output, exit codes |
 | 0.11 | **Re-probe all eight Phase 2 T1 checks** against the pinned c3c as isolated compiling files, *before* lane assignments go out (rule 9). The same operation already deleted five checks; do it on the remainder before three agents build them |
 
-**Gate:** the stub check produces one diagnostic end-to-end through the real
-CLI binary; the harness passes one testdata file; invariants run on one file;
-**`c3c build parser` builds `src/parser/` alone** (`DESIGN.md` §1.5 rule 5);
-and every Phase 2 check row is probed. Interfaces then declared frozen.
+**Gate: MET.** Verified by `scripts/check-carveout.sh` (both carve-out gates,
+tested to fail on a deliberate violation), `scripts/probe-overlap.sh` (23/23
+probes as expected), `c3c test` (25 passing), and the real CLI emitting a
+finding with exit 1. Interfaces are now **frozen**.
+
+Two gotchas worth knowing before you start:
+
+- Type properties use `::` since 0.8 (`uint::max`, not `uint.max`). Your
+  training data is probably 0.7. `c3_check` rewrites it and tells you.
+- `@local` is silently ignored on method declarations; use it on plain
+  functions only.
 
 ---
 

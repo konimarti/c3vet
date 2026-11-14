@@ -490,7 +490,8 @@ not parse `$foreach` bodies" impossible to ship.
 ## 7. Testdata format
 
 `go vet`'s `analysistest` convention. One file per check,
-`test/testdata/<check-name>.c3`:
+`testdata/<check-name>.c3` (at the project root, not under `test/` -- see the
+layout above):
 
 ```c3
 module testdata_self_assign;
