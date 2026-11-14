@@ -7,7 +7,17 @@
  similar") -- not a general tautology prover. A dotted/member path like
  `a.b == a.b` is supported for free (it is just a longer identical token
  run), but a clause containing more than one top-level `==` is left alone
- rather than risk comparing the wrong halves.
+ rather than risk comparing the wrong halves. Likewise a ternary's own `:`
+ inside the clause can truncate the scan before the real `==` is reached
+ (the same "not a general parser" limitation as the multi-`==` bail) -- a
+ missed finding there, never a wrong one.
+
+ `X == X` is only a tautology when both reads are guaranteed to produce the
+ same value, same as this codebase's own `same_expr` side-effect veto
+ (src/c3vet/checks/support/same_expr.c3) for the Family C checks: `rand() ==
+ rand()` is textually self-identical but not tautological, since a call may
+ return something different each time. A clause whose identical span
+ contains a call (any `(`) or `++`/`--` is left alone for the same reason.
 
  Contracts are trivia, never AST nodes (docs/DESIGN.md section 2): read via
  `TokenList.contract_before` plus `lexer::ContractLexer`, the only bridge.
@@ -108,7 +118,9 @@ fn bool contract_has_tautological_require(String contract_text) @local
 		{
 			sz lhs_len = eq_pos - clause_start;
 			sz rhs_len = j - (eq_pos + 1);
-			if (lhs_len > 0 && lhs_len == rhs_len && same_tokens(toks, clause_start, eq_pos + 1, lhs_len))
+			if (lhs_len > 0 && lhs_len == rhs_len
+				&& same_tokens(toks, clause_start, eq_pos + 1, lhs_len)
+				&& !span_has_side_effect(toks, clause_start, lhs_len))
 			{
 				return true;
 			}
@@ -126,4 +138,21 @@ fn bool same_tokens(Token[] toks, sz a, sz b, sz len) @local
 		if (toks[a + k].text != toks[b + k].text) return false;
 	}
 	return true;
+}
+
+<*
+ True when the span could read a different value each time: a call (any
+ `(`, since there is no AST here to tell a call from a parenthesized
+ sub-expression -- conservative either way) or `++`/`--`. `X == X` is only
+ a tautology when both reads are guaranteed equal; `rand() == rand()` is
+ textually self-identical but not tautological.
+*>
+fn bool span_has_side_effect(Token[] toks, sz start, sz len) @local
+{
+	for (sz k = 0; k < len; k++)
+	{
+		TokenType t = toks[start + k].type;
+		if (t == LPAREN || t == PLUSPLUS || t == MINUSMINUS) return true;
+	}
+	return false;
 }
