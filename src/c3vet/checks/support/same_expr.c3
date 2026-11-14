@@ -38,7 +38,6 @@ fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b) @local
 	Node* na = ast.node(a);
 	Node* nb = ast.node(b);
 	if (na.kind != nb.kind) return false;
-	if (toks.text_at(na.tok) != toks.text_at(nb.tok)) return false;
 
 	if (na.kind.is_list_bearing())
 	{
@@ -51,6 +50,22 @@ fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b) @local
 		}
 		return true;
 	}
+
+	if (na.lhs == parser::NONE && na.rhs == parser::NONE && nb.lhs == parser::NONE && nb.rhs == parser::NONE)
+	{
+		// A true leaf (IDENT, PATH, literals, ...). `.tok` is only an anchor,
+		// not the whole identity -- a qualified PATH's `.tok` is its first
+		// segment, so `os::POLLERR` and `os::POLLHUP` would otherwise compare
+		// equal on that one token alone. Compare the full node span instead.
+		if (na.last_tok - na.first_tok != nb.last_tok - nb.first_tok) return false;
+		for (uint i = 0; i <= na.last_tok - na.first_tok; i++)
+		{
+			if (toks.text_at(na.first_tok + i) != toks.text_at(nb.first_tok + i)) return false;
+		}
+		return true;
+	}
+
+	if (toks.text_at(na.tok) != toks.text_at(nb.tok)) return false;
 	return same_shape(ast, toks, na.lhs, nb.lhs) && same_shape(ast, toks, na.rhs, nb.rhs);
 }
 
