@@ -90,6 +90,32 @@ fn int main(String[] argv)
 	ctx.reported.init(mem);
 	defer ctx.reported.free();
 
+	// Built once, only when some enabled check is Tier.PROJECT or above --
+	// a SYNTAX/LOCAL-only run never pays for indexing deps and the stdlib.
+	// Unlike Scopes/Flow (per-file, built lazily inside run_checks), the
+	// declaration table is project-wide, so it must exist before the
+	// per-file loop below, not be built lazily inside it.
+	DeclTable table;
+	if (c3vet::max_tier(enabled) >= Tier.PROJECT)
+	{
+		List{String} table_roots;
+		table_roots.tinit();
+		if (o.targets.len())
+		{
+			foreach (t : o.targets) table_roots.push(t);
+		}
+		else
+		{
+			table_roots.push("src");
+		}
+		table_roots.push("lib");
+		String std_root = c3vet::find_stdlib_root(tmem);
+		if (std_root.len) table_roots.push(std_root);
+
+		c3vet::build_table(&table, table_roots.array_view(), mem);
+		ctx.table = &table;
+	}
+
 	foreach (f : files)
 	{
 		if (!vet_file(&ctx, f, enabled))
