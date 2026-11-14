@@ -47,18 +47,28 @@ struct Want
 
 <*
  Run one check against one testdata file and assert an exact match.
+
+ Looks `check_name` up in the registry (orchestrator-owned, `WORKPLAN.md`
+ rule 3), so this only works once the check has landed in
+ `c3vet::ALL_CHECKS`. A check mid-development should call `verify_check`
+ below with its own `Check` literal instead -- same 1:1 `// want` match, no
+ registry dependency.
  @param check_name : "the check to enable; every other check stays off"
  @param path : "path to the testdata file, relative to the project root"
 *>
 fn void verify(String check_name, String path)
 {
+	sz idx = c3vet::find_check(check_name);
+	assert(idx >= 0, "no such check '%s'", check_name);
+	verify_check(c3vet::ALL_CHECKS[idx], path);
+}
+
+<* Same match as `verify`, but takes the `Check` literal directly. *>
+fn void verify_check(Check only, String path)
+{
 	char[]? bytes = file::load(tmem, path);
 	if (catch bytes) unreachable("cannot read testdata '%s'", path);
 	String src = (String)bytes;
-
-	sz idx = c3vet::find_check(check_name);
-	assert(idx >= 0, "no such check '%s'", check_name);
-	Check only = c3vet::ALL_CHECKS[idx];
 
 	Unit u;
 	u.path = path;
@@ -132,8 +142,23 @@ fn void collect_wants(List{Want}* out, TokenList* toks) @local
  Returns 0 immediately, without asserting, when `C3C_CHECKOUT` is not found
  -- same policy as `conformance_corpus_is_clean`, so this is safe to call
  from a machine that does not have the sibling repo.
+
+ Looks the check up in the registry, so it only works for a check already
+ landed in `c3vet::ALL_CHECKS` (orchestrator-owned, `WORKPLAN.md` rule 3). A
+ check mid-development, not yet registered, should call `measure_fp_check`
+ below directly with its own `Check` literal instead -- same corpus sweep,
+ no registry dependency, so a lane is never blocked measuring its own FP
+ count before the orchestrator lands its entry.
 *>
 fn sz measure_fp(String check_name)
+{
+	sz idx = c3vet::find_check(check_name);
+	assert(idx >= 0, "no such check '%s'", check_name);
+	return measure_fp_check(c3vet::ALL_CHECKS[idx]);
+}
+
+<* Same sweep as `measure_fp`, but takes the `Check` literal directly. *>
+fn sz measure_fp_check(Check check)
 {
 	String base = conformance::checkout_dir();
 	if (!path::exists(path::tnew(base) ?? (Path){})) return 0;
@@ -143,9 +168,7 @@ fn sz measure_fp(String check_name)
 	String[] files = conformance::find_c3_files(lib_dir);
 	String[] unit_files = conformance::find_c3_files(unit_dir);
 
-	sz idx = c3vet::find_check(check_name);
-	assert(idx >= 0, "no such check '%s'", check_name);
-	Check[1] one = { c3vet::ALL_CHECKS[idx] };
+	Check[1] one = { check };
 
 	sz total = 0;
 	foreach (group : (String[][]){ files, unit_files })
