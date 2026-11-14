@@ -109,7 +109,7 @@ fn void compile_time_switch_accepts_boolean_case_expression()
 
 fn void declarations_and_return_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; int $generated @noinit; String[1] $ext = { \"x\" }; const int LIMIT = 3; static int cached; custom::Type pathValue; $Type* ptrValue = value; int::max; return count; }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; int $generated @noinit; String[1] $ext = { \"x\" }; $Typeof(instance.h[0])[16] m, v; const int LIMIT = 3; static int cached; custom::Type pathValue; $Type* ptrValue = value; int::max; return count; }");
 	defer r.free();
 	bool vars = false; bool returned = false;
 	for (NodeId i = 1; i < r.ast.len(); i++) { if (r.ast.kind(i) == VAR_DECL) vars = true; if (r.ast.kind(i) == RETURN) returned = true; }
@@ -125,6 +125,44 @@ fn void compile_time_pointer_type_local_declaration()
 	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == VAR_DECL) found = true;
 	assert(found, "$Type* name = expr is parsed as a local declaration");
 	assert(!r.has_errors(), "compile-time pointer type local parses cleanly");
+}
+
+fn void compile_time_type_values_use_general_expressions()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var $Type = true ??? $Typeof(value) : $Typeof(*value); $Type = true ??? $Typeof(value) : $Typeof(*value); }");
+	defer r.free();
+	assert(!r.has_errors(), "compile-time type variables accept ternary expression initializers and assignments: %s", r.errors.len() ? r.errors[0].msg : "none");
+	bool var_ternary = false; bool assign_ternary = false;
+	for (NodeId i = 1; i < r.ast.len(); i++)
+	{
+		if (r.ast.kind(i) == VAR_DECL && r.ast.kind(r.ast.node(i).rhs) == TERNARY) var_ternary = true;
+		if (r.ast.kind(i) == CT_EXPAND)
+		{
+			NodeId[] kids = r.ast.children(i);
+			assign_ternary = kids.len == 1 && r.ast.kind(kids[0]) == TERNARY;
+		}
+	}
+	assert(var_ternary && assign_ternary, "compile-time type values preserve their expression child shapes");
+}
+
+fn void compile_time_identifier_expression_statement()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var $v = 8; $v |= $v >> 1; }");
+	defer r.free();
+	assert(!r.has_errors(), "a compile-time identifier can start an expression statement");
+	bool assignment = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == ASSIGN) assignment = true;
+	assert(assignment, "compile-time identifier assignment is represented");
+}
+
+fn void inferred_var_attributes_parse_before_initializer()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var square @safeinfer = delta.length_sq(); }");
+	defer r.free();
+	assert(!r.has_errors(), "plain inferred locals accept attributes before their initializer");
+	bool found = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == VAR_DECL) found = true;
+	assert(found, "attributed inferred local remains a VAR_DECL");
 }
 
 fn void label_and_jump_shapes()
