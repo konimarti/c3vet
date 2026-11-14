@@ -150,8 +150,8 @@ Instead `lex.c3` records, for each declaration's first token, the index of the
 fn uint TokenList.contract_before(&self, uint code_idx);   // NO_TOKEN if none
 ```
 
-The Phase 4 contract checks (`contract-unknown-param`,
-`contract-missing-return`) are the only consumers. They take that token's
+The Phase 4 contract checks (`contract-void-return`,
+`contract-tautology`) are the only consumers. They take that token's
 lexeme and run `lexer::ContractLexer` over it on demand — the second lexing
 mode `lexer.c3l` provides precisely for this. Nothing else parses contract
 interiors, and no contract content enters the arena.
