@@ -101,7 +101,10 @@ carve-out must survive your lane.
 
 **Phase gate (all lanes):** the **642-file conformance corpus** — `c3c/lib`
 (366) + `c3c/test/unit` (276) — parses with **zero** `ERROR` nodes and all four
-invariants hold. The **816-file resilience corpus** (`c3c/test/test_suite`, of
+invariants hold. Note invariant 3 is *content representation*, not raw token
+coverage — read `DESIGN.md` §6 before trying to satisfy it, and delete
+`content_invariant_catches_a_skipped_signature` in `parse_test.c3` once lane
+1C lands a real signature parser. The **816-file resilience corpus** (`c3c/test/test_suite`, of
 which 662 are deliberately invalid) must not crash, hang, or break an
 invariant — do **not** chase zero errors there, those files are supposed to be
 broken. Fix forward; a lane is not done while the conformance corpus is red in

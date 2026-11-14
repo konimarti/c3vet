@@ -10,6 +10,7 @@ module c3vet;
 
 <* Every check that exists, in a stable order. *>
 const Check[] ALL_CHECKS = {
+	PARSE,
 	STUB_EMPTY_BLOCK,
 };
 

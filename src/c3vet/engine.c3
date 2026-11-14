@@ -83,13 +83,37 @@ struct Check
  Every check goes through here, so no check formats its own location, and
  suppression and reported-scope filtering happen in exactly one place.
 *>
-fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, any... args)
+fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, args...)
+{
+	Node* n = u.ast().node(node);
+	self.emit(u, n.first_tok, n.last_tok, check, string::format(self.out.allocator, fmt, ...args));
+}
+
+<*
+ Report a finding at a token span rather than a node.
+
+ Needed by the `parse` check, whose findings predate any node. Everything
+ still goes through `emit`, so scope filtering and suppression are applied in
+ exactly one place.
+*>
+fn void Ctx.report_at_token(&self, Unit* u, uint first_tok, uint last_tok,
+                            String check, String fmt, args...)
+{
+	self.emit(u, first_tok, last_tok, check, string::format(self.out.allocator, fmt, ...args));
+}
+
+<*
+ The single gate every finding passes through.
+
+ Scope filtering and suppression live here and nowhere else, so a check
+ cannot leak a dependency-scope diagnostic by forgetting to guard.
+*>
+fn void Ctx.emit(&self, Unit* u, uint first_tok, uint last_tok, String check, String msg)
 {
 	if (!self.in_reported_scope(u.path)) return;
 
-	Node* n = u.ast().node(node);
-	lexer::Token t = u.toks().tok(n.first_tok);
-	lexer::Token last = u.toks().tok(n.last_tok);
+	lexer::Token t = u.toks().tok(first_tok);
+	lexer::Token last = u.toks().tok(last_tok);
 	if (u.suppress.suppresses(check, t.ln, last.ln))
 	{
 		self.suppressed++;
@@ -99,10 +123,10 @@ fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, any...
 		.file      = u.path,
 		.ln        = t.ln,
 		.col       = t.col,
-		.first_tok = n.first_tok,
-		.last_tok  = n.last_tok,
+		.first_tok = first_tok,
+		.last_tok  = last_tok,
 		.check     = check,
-		.msg       = string::format(self.out.allocator, fmt, ...args),
+		.msg       = msg,
 	});
 }
 

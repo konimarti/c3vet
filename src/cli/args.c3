@@ -64,17 +64,5 @@ fn Options parse_args(Allocator a, String[] argv, Config* cfg)
 <* Split a comma-separated list onto `out`, ignoring empty entries. *>
 fn void add_names(List{String}* out, String csv) @local
 {
-	usz from = 0;
-	while (from <= csv.len)
-	{
-		usz end = from;
-		while (end < csv.len && csv[end] != ',') end++;
-		if (end > from)
-		{
-			String name = csv[from..end - 1].trim();
-			if (name.len) out.push(name.copy(out.allocator));
-		}
-		if (end >= csv.len) break;
-		from = end + 1;
-	}
+	foreach (name : c3vet::split_names(tmem, csv)) out.push(name.copy(out.allocator));
 }

@@ -472,9 +472,23 @@ CLI flags win.
 Checked by `test/invariants.c3` on every corpus file. These catch the parser
 bugs that plain conformance misses:
 
-1. **Token coverage** — every non-trivia token is inside exactly one leaf
-   node's span. A token covered zero times means a dropped construct; twice
-   means overlapping spans.
+1. **Content representation** — every *content* token (identifier, literal,
+   or type keyword) is either the principal token (`tok`) of some node, or
+   inside the span of a leaf node.
+
+   The obvious phrasing — "every token is inside exactly one leaf's span" —
+   is **unsatisfiable by any parser**, and was the first thing written here.
+   Structural tokens live on interior nodes by design: BLOCK's span holds its
+   braces while its children are the statements, so no statement covers a
+   brace. Gating on it would have had three lanes driving coverage toward a
+   floor they could never reach.
+
+   What we actually want to catch is a parser *skipping content*, so the rule
+   covers only tokens that carry meaning; punctuation and keywords are exempt,
+   since owning those is what interior nodes are for. `test/parser/
+   parse_test.c3` holds the discriminating pair that keeps this honest: one
+   case that a fully-parsed file **passes**, and one that a signature-skipping
+   parser **fails**. An invariant with no failing case is not a gate.
 2. **Span nesting** — for every edge, child span ⊆ parent span, and
    `first_tok <= tok <= last_tok`.
 3. **Edge validity** — every non-`NONE` `NodeId` is in range; no node is its own
@@ -484,6 +498,10 @@ bugs that plain conformance misses:
 
 Invariant 1 is the one that earns its keep: it is what makes "we silently did
 not parse `$foreach` bodies" impossible to ship.
+
+Every invariant must be validated against a known-bad tree, the way
+`scripts/check-carveout.sh` was tested against a deliberate violation. A
+checker nobody has seen fail is a checker nobody knows works.
 
 ---
 

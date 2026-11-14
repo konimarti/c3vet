@@ -60,13 +60,16 @@ fn void SuppressionSet.collect(&self, TokenList* toks)
 <*
  The comma-separated names inside a trailing `[...]`, or the empty string when
  there is no bracket, which means "every check".
+
+ `[]` yields the empty string too, so an empty bracket reads as "every check"
+ rather than slicing backwards.
 *>
 fn String bracket_list(String rest) @local
 {
 	sz open = rest.index_of_char('[') ?? -1;
 	if (open < 0) return "";
 	sz close = rest.index_of_char(']') ?? -1;
-	if (close <= open) return "";
+	if (close <= open + 1) return "";
 	return rest[(usz)open + 1 .. (usz)close - 1];
 }
 
@@ -74,18 +77,8 @@ fn String bracket_list(String rest) @local
 fn bool Suppression.covers(&self, String check)
 {
 	if (!self.checks.len) return true;
-	// Match whole names only, so "self-assign" is not matched by "assign".
-	usz from = 0;
-	String s = self.checks;
-	while (from <= s.len)
-	{
-		usz end = from;
-		while (end < s.len && s[end] != ',') end++;
-		String name = s[from..end > from ? end - 1 : from];
-		if (name.trim() == check) return true;
-		if (end >= s.len) break;
-		from = end + 1;
-	}
+	// Whole names only, so "self-assign" is not matched by "assign".
+	foreach (name : split_names(tmem, self.checks)) if (name == check) return true;
 	return false;
 }
 

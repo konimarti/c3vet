@@ -33,10 +33,41 @@ fn void spans_and_edges_hold()
 	Report rep = invariants::check(&r);
 	assert(rep.edges_valid, "invariant 2, edge validity: %s", rep.detail);
 	assert(rep.spans_nest, "invariant 1, span nesting: %s", rep.detail);
-	// Invariant 3 (token coverage) is the Phase 1 gate and must NOT pass yet:
-	// the Phase 0 stubs skip over function signatures without making nodes.
-	// When lanes 1A-1C land, this assertion flips to rep.tokens_covered.
-	assert(!rep.tokens_covered, "coverage must still fail with Phase 0 stubs");
+}
+
+<*
+ Invariant 3 must PASS on input the parser handles completely.
+
+ This is half of the discriminating pair. If it ever fails, the invariant has
+ been phrased as something no parser can satisfy -- which is exactly what the
+ first formulation (every token inside a leaf span) did, because structural
+ tokens like braces live on interior nodes by design.
+*>
+fn void content_invariant_passes_on_fully_parsed_input()
+{
+	ParseResult r = parser::parse(mem, "module demo;");
+	defer r.free();
+	Report rep = invariants::check(&r);
+	assert(rep.content_represented,
+		"a fully parsed file must satisfy invariant 3: %s", rep.detail);
+}
+
+<*
+ Invariant 3 must FAIL on a parser that skips content.
+
+ The other half of the pair. The Phase 0 parse_fn stub walks over a function
+ signature without building nodes for it, so `f` belongs to nothing. When
+ lane 1C lands a real signature parser this flips: delete the test and let
+ the conformance gate carry it.
+*>
+fn void content_invariant_catches_a_skipped_signature()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { }");
+	defer r.free();
+	Report rep = invariants::check(&r);
+	assert(!rep.content_represented,
+		"the stub skips 'void f' -- invariant 3 must notice, or it has no teeth");
+	assert(rep.unrepresented > 0, "and must count what it skipped");
 }
 
 fn void malformed_input_still_returns_a_tree()

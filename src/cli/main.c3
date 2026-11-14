@@ -128,22 +128,40 @@ fn String suppressed_note(Ctx* ctx) @local
 	return string::tformat(", %d suppressed", ctx.suppressed);
 }
 
+<*
+ Vet one file.
+
+ Everything a single file needs -- its bytes, its tokens, its arena -- is
+ temp-allocated and released when the pool closes, so peak memory stays flat
+ across a large run rather than growing with the file count. Findings escape
+ safely: `Diagnostic.msg` is allocated from `ctx.out`'s allocator and `path`
+ is owned by the caller's list.
+*>
 fn bool vet_file(Ctx* ctx, String path, Check[] enabled) @local
 {
-	char[]? bytes = file::load(tmem, path);
-	if (catch bytes) return false;
+	bool ok = true;
+	@pool()
+	{
+		char[]? bytes = file::load(tmem, path);
+		if (catch bytes)
+		{
+			// A bare `return` here would return from vet_file, not the pool.
+			ok = false;
+		}
+		else
+		{
+			Unit u;
+			u.path = path;
+			u.src = (String)bytes;
+			u.parsed = parser::parse(tmem, u.src);
+			u.suppress.init(tmem);
+			if (!ctx.config.no_suppress) u.suppress.collect(u.toks());
 
-	Unit u;
-	u.path = path;
-	u.src = (String)bytes;
-	u.parsed = parser::parse(tmem, u.src);
-	u.suppress.init(tmem);
-	if (!ctx.config.no_suppress) u.suppress.collect(u.toks());
-
-	// Parse failures are findings too, reported under the "parse" name.
-	c3vet::collect_parse_errors(ctx.out, path, &u.parsed);
-	c3vet::run_checks(ctx, &u, enabled);
-	return true;
+			// Parse failures are reported by the `parse` check, like any other.
+			c3vet::run_checks(ctx, &u, enabled);
+		}
+	};
+	return ok;
 }
 
 fn void list_checks() @local

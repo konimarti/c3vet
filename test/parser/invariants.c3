@@ -2,13 +2,33 @@
  Structural invariants on a parsed tree. See docs/DESIGN.md section 6.
 
  These catch the parser bugs that corpus conformance misses. Invariant 3
- (token coverage) is the one that earns its keep: it makes "we silently did
- not parse $foreach bodies" impossible to ship, because an unparsed region
- shows up as uncovered tokens.
+ (content representation) is the one that earns its keep: it makes "we
+ silently did not parse $foreach bodies" impossible to ship.
+
+ ## Why invariant 3 is phrased the way it is
+
+ The obvious formulation -- every token is inside exactly one leaf's span --
+ is unsatisfiable by ANY parser, not just an incomplete one. Structural
+ tokens live on interior nodes: BLOCK's span holds its braces while its
+ children are the statements, and no statement covers a brace. Gating on that
+ would have had three lanes driving coverage toward a floor they could never
+ reach.
+
+ What we actually want to catch is a parser SKIPPING content. So the rule is
+ about content tokens only -- identifiers, literals and type keywords, the
+ tokens that carry meaning and must each become part of some node:
+
+   every content token is either the principal token (`tok`) of some node,
+   or inside the span of a leaf node.
+
+ Punctuation and keywords are exempt: owning those is exactly what interior
+ nodes are for. This passes on a correct parser and fails on one that skips
+ a function signature -- the discriminating pair is in parse_test.c3.
 *>
 module c3::parser::invariants;
 
 import c3::parser;
+import c3::lexer;
 import std::collections::list;
 import std::io;
 
@@ -16,17 +36,46 @@ struct Report
 {
 	bool   spans_nest;
 	bool   edges_valid;
-	bool   tokens_covered;
+	bool   content_represented;
 	<* First failure found, for the test output. *>
 	String detail;
-	<* Code tokens inside no leaf node's span. *>
-	sz     uncovered;
-	<* Code tokens inside more than one leaf node's span. *>
-	sz     overcovered;
+	<* Content tokens that no node represents. *>
+	sz     unrepresented;
 }
 
 fn bool Report.ok(&self) @inline
-	=> self.spans_nest && self.edges_valid && self.tokens_covered;
+	=> self.spans_nest && self.edges_valid && self.content_represented;
+
+<*
+ True for tokens that carry meaning and so must belong to some node.
+
+ Punctuation, operators and control keywords are deliberately absent: those
+ are what interior nodes own.
+*>
+fn bool is_content(TokenType t)
+{
+	switch (t)
+	{
+		case IDENT:
+		case CONST_IDENT:
+		case TYPE_IDENT:
+		case AT_IDENT:
+		case AT_TYPE_IDENT:
+		case AT_CONST_IDENT:
+		case HASH_IDENT:
+		case CT_IDENT:
+		case CT_TYPE_IDENT:
+		case CT_CONST_IDENT:
+		case INTEGER:
+		case REAL:
+		case STRING:
+		case CHAR_LITERAL:
+		case BYTES:
+			return true;
+		default:
+			return parser::is_base_type(t);
+	}
+}
 
 <*
  Check invariants 1-3 on a parsed tree.
@@ -34,30 +83,34 @@ fn bool Report.ok(&self) @inline
 *>
 fn Report check(ParseResult* r)
 {
-	Report rep = { .spans_nest = true, .edges_valid = true, .tokens_covered = true };
+	Report rep = { .spans_nest = true, .edges_valid = true, .content_represented = true };
 	sz ntok = r.toks.len();
 
-	// Invariant 3 needs a per-token cover count, filled in by the walk below.
-	List{char} cover;
-	cover.tinit();
-	for (sz i = 0; i < ntok; i++) cover.push(0);
+	List{char} seen;
+	seen.tinit();
+	for (sz i = 0; i < ntok; i++) seen.push(0);
 
-	check_node(r, parser::NONE == r.ast.root ? parser::NONE : r.ast.root, &rep, &cover, 0);
+	// A node's principal token is represented by that node, whatever its shape.
+	for (sz i = 1; i < r.ast.len(); i++)
+	{
+		Node* n = r.ast.node((NodeId)i);
+		if ((sz)n.tok < ntok) seen.set((sz)n.tok, 1);
+	}
+
+	check_node(r, r.ast.root, &rep, &seen, 0);
 
 	for (sz i = 0; i < ntok; i++)
 	{
-		if (cover[i] == 0) rep.uncovered++;
-		if (cover[i] > 1) rep.overcovered++;
-	}
-	if (rep.uncovered > 0 || rep.overcovered > 0)
-	{
-		rep.tokens_covered = false;
+		if (seen[i]) continue;
+		if (!is_content(r.toks.type_at((uint)i))) continue;
+		rep.unrepresented++;
 		if (!rep.detail.len)
 		{
-			rep.detail = string::tformat("%d token(s) in no node, %d in more than one",
-				rep.uncovered, rep.overcovered);
+			rep.detail = string::tformat("token %d '%s' (%s) belongs to no node",
+				i, r.toks.text_at((uint)i), r.toks.type_at((uint)i));
 		}
 	}
+	if (rep.unrepresented > 0) rep.content_represented = false;
 	return rep;
 }
 
@@ -65,7 +118,7 @@ fn Report check(ParseResult* r)
  Recursive half of `check`. Verifies invariants 1 and 2 on this node, then
  recurses; marks cover for leaves only, so overlapping leaf spans are caught.
 *>
-fn void check_node(ParseResult* r, NodeId id, Report* rep, List{char}* cover, uint depth) @local
+fn void check_node(ParseResult* r, NodeId id, Report* rep, List{char}* seen, uint depth) @local
 {
 	if (id == parser::NONE) return;
 	if (depth > 4096)
@@ -109,8 +162,9 @@ fn void check_node(ParseResult* r, NodeId id, Report* rep, List{char}* cover, ui
 	NodeId[] kids = parser::child_ids(&r.ast, id);
 	if (!kids.len)
 	{
-		// A leaf: it owns its span for coverage purposes.
-		for (sz t = (sz)n.first_tok; t <= (sz)n.last_tok && t < ntok; t++) cover.set(t, cover.get(t) + 1);
+		// A leaf represents everything in its span: PATH stands for `a::b`,
+		// a literal for its token.
+		for (sz t = (sz)n.first_tok; t <= (sz)n.last_tok && t < ntok; t++) seen.set(t, 1);
 		return;
 	}
 	foreach (kid : kids)
@@ -127,6 +181,6 @@ fn void check_node(ParseResult* r, NodeId id, Report* rep, List{char}* cover, ui
 					kid, c.kind, c.first_tok, c.last_tok, id, n.kind, n.first_tok, n.last_tok);
 			}
 		}
-		check_node(r, kid, rep, cover, depth + 1);
+		check_node(r, kid, rep, seen, depth + 1);
 	}
 }

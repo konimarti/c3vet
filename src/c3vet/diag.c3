@@ -46,26 +46,3 @@ fn int cmp_diagnostic(Diagnostic a, Diagnostic b)
 	if (a.col != b.col) return a.col < b.col ? -1 : 1;
 	return a.check.compare_to(b.check);
 }
-
-<*
- Turn the parser's own errors into diagnostics.
-
- This mapping is the only place a ParseError becomes a Diagnostic, which is
- what lets the parser stay free of c3vet types (docs/DESIGN.md 1.5 rule 2).
-*>
-fn void collect_parse_errors(DiagnosticList* out, String file, ParseResult* r)
-{
-	foreach (e : r.errors)
-	{
-		lexer::Token t = r.toks.tok(e.tok);
-		out.push({
-			.file      = file,
-			.ln        = t.ln,
-			.col       = t.col,
-			.first_tok = e.tok,
-			.last_tok  = e.tok,
-			.check     = PARSE_CHECK,
-			.msg       = e.msg,
-		});
-	}
-}
