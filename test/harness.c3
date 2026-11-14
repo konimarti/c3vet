@@ -32,11 +32,11 @@ module c3vet::testdata;
 
 import c3vet;
 import c3::parser;
-import c3::parser::conformance;
 import c3::lexer;
 import std::collections::list;
 import std::io;
 import std::io::path;
+import std::os::env;
 
 struct Want
 {
@@ -160,13 +160,13 @@ fn sz measure_fp(String check_name)
 <* Same sweep as `measure_fp`, but takes the `Check` literal directly. *>
 fn sz measure_fp_check(Check check)
 {
-	String base = conformance::checkout_dir();
+	String base = checkout_dir();
 	if (!path::exists(path::tnew(base) ?? (Path){})) return 0;
 
 	String lib_dir = string::tformat("%s/lib", base);
 	String unit_dir = string::tformat("%s/test/unit", base);
-	String[] files = conformance::find_c3_files(lib_dir);
-	String[] unit_files = conformance::find_c3_files(unit_dir);
+	String[] files = find_c3_files(lib_dir);
+	String[] unit_files = find_c3_files(unit_dir);
 
 	Check[1] one = { check };
 
@@ -200,4 +200,46 @@ fn sz measure_fp_check(Check check)
 		}
 	}
 	return total;
+}
+
+<*
+ The sibling c3c checkout used for the FP sweep above, found via
+ C3C_CHECKOUT (default: /home/km/Documents/c3c). Own copy, not shared with
+ parser.c3l's conformance test -- that library is a separate repository
+ now (docs/DESIGN.md section 1.5), and this harness must not depend on it.
+*>
+fn String checkout_dir() @local
+{
+	String? v = env::tget_var("C3C_CHECKOUT");
+	if (try v) return v;
+	return "/home/km/Documents/c3c";
+}
+
+<* Every *.c3 and *.c3i file under `dir`, recursively. Result in temp memory. *>
+fn String[] find_c3_files(String dir) @local
+{
+	List{String} out;
+	out.tinit();
+	walk_c3_files(&out, dir);
+	return out.to_tarray();
+}
+
+fn void walk_c3_files(List{String}* out, String dir) @local
+{
+	Path? p = path::tnew(dir);
+	if (catch p) return;
+	PathList? entries = path::ls(tmem, p);
+	if (catch entries) return;
+	foreach (e : entries)
+	{
+		String name = e.basename();
+		if (name == "." || name == "..") continue;
+		String full = string::tformat("%s/%s", dir, name);
+		if (file::is_dir(full))
+		{
+			walk_c3_files(out, full);
+			continue;
+		}
+		if (name.ends_with(".c3") || name.ends_with(".c3i")) out.push(full);
+	}
 }
