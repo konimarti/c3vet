@@ -17,6 +17,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check UNUSED_LABEL = {
 	.name          = "unused-label",
@@ -24,14 +25,9 @@ const Check UNUSED_LABEL = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_unused_label,
+	.visit         = &visit_unused_label,
+	.make_state    = &make_unused_label_state,
 };
-
-fn void run_unused_label(Ctx* ctx, Unit* u)
-{
-	UnusedLabelWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_unused_label, &w);
-}
 
 <* Carries the engine's two pointers through `walk`'s `any` context. *>
 struct UnusedLabelWalker
@@ -39,6 +35,9 @@ struct UnusedLabelWalker
 	Ctx*  ctx;
 	Unit* unit;
 }
+
+fn any make_unused_label_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, UnusedLabelWalker, { .ctx = ctx, .unit = u });
 
 struct LoopLabel
 {

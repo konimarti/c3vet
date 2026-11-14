@@ -4,6 +4,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check CONST_INT_DIV_TO_FLOAT = {
 	.name          = "const-int-div-to-float",
@@ -11,7 +12,8 @@ const Check CONST_INT_DIV_TO_FLOAT = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_const_int_div_to_float,
+	.visit         = &visit_const_int_div,
+	.make_state    = &make_const_int_div_state,
 };
 
 struct ConstIntDivWalker
@@ -21,11 +23,11 @@ struct ConstIntDivWalker
 	List{NodeId} reported;
 }
 
-fn void run_const_int_div_to_float(Ctx* ctx, Unit* u)
+fn any make_const_int_div_state(Ctx* ctx, Unit* u, Allocator a) @local
 {
-	ConstIntDivWalker w = { .ctx = ctx, .unit = u };
-	w.reported.tinit();
-	parser::walk(u.ast(), u.root(), &visit_const_int_div, &w);
+	ConstIntDivWalker* w = alloc::new(a, ConstIntDivWalker, { .ctx = ctx, .unit = u });
+	w.reported.init(a);
+	return w;
 }
 
 fn bool visit_const_int_div(Ast* ast, NodeId id, any context) @local

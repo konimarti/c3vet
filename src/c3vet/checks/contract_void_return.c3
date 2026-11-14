@@ -10,6 +10,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check CONTRACT_VOID_RETURN = {
 	.name          = "contract-void-return",
@@ -17,7 +18,8 @@ const Check CONTRACT_VOID_RETURN = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_contract_void_return,
+	.visit         = &visit_contract_void_return,
+	.make_state    = &make_contract_void_return_state,
 };
 
 struct ContractVoidReturnWalker
@@ -26,11 +28,8 @@ struct ContractVoidReturnWalker
 	Unit* unit;
 }
 
-fn void run_contract_void_return(Ctx* ctx, Unit* u)
-{
-	ContractVoidReturnWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_contract_void_return, &w);
-}
+fn any make_contract_void_return_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, ContractVoidReturnWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_contract_void_return(Ast* ast, NodeId id, any context) @local
 {

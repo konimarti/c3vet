@@ -10,6 +10,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check MISSING_FORMAT_ATTR = {
 	.name          = "missing-format-attr",
@@ -17,15 +18,9 @@ const Check MISSING_FORMAT_ATTR = {
 	.tier          = Tier.PROJECT,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_missing_format_attr,
+	.visit         = &visit_missing_format_attr,
+	.make_state    = &make_missing_format_attr_state,
 };
-
-fn void run_missing_format_attr(Ctx* ctx, Unit* u)
-{
-	if (!ctx.table) return;
-	MissingFormatAttrWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_missing_format_attr, &w);
-}
 
 struct MissingFormatAttrWalker
 {
@@ -33,9 +28,13 @@ struct MissingFormatAttrWalker
 	Unit* unit;
 }
 
+fn any make_missing_format_attr_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, MissingFormatAttrWalker, { .ctx = ctx, .unit = u });
+
 fn bool visit_missing_format_attr(Ast* ast, NodeId id, any ctx) @local
 {
 	MissingFormatAttrWalker* w = (MissingFormatAttrWalker*)ctx;
+	if (!w.ctx.table) return true;
 	Node* n = ast.node(id);
 	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL) return true;
 

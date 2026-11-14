@@ -3,6 +3,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check SWALLOWED_FAULT = {
 	.name          = "swallowed-fault",
@@ -10,16 +11,14 @@ const Check SWALLOWED_FAULT = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_swallowed_fault,
+	.visit         = &visit_swallowed_fault,
+	.make_state    = &make_swallowed_fault_state,
 };
 
 struct SwallowedFaultWalker { Ctx* ctx; Unit* unit; }
 
-fn void run_swallowed_fault(Ctx* ctx, Unit* u)
-{
-	SwallowedFaultWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_swallowed_fault, &w);
-}
+fn any make_swallowed_fault_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, SwallowedFaultWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_swallowed_fault(Ast* ast, NodeId id, any context) @local
 {

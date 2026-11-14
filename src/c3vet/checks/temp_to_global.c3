@@ -10,6 +10,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check TEMP_TO_GLOBAL = {
 	.name          = "temp-to-global",
@@ -17,14 +18,12 @@ const Check TEMP_TO_GLOBAL = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_temp_to_global,
+	.visit         = &visit_temp_to_global,
+	.make_state    = &make_temp_to_global_state,
 };
 
-fn void run_temp_to_global(Ctx* ctx, Unit* u)
-{
-	TempToGlobalWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_temp_to_global, &w);
-}
+fn any make_temp_to_global_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, TempToGlobalWalker, { .ctx = ctx, .unit = u });
 
 struct TempToGlobalWalker
 {

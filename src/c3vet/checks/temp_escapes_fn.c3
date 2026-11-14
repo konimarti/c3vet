@@ -10,6 +10,7 @@ import c3::parser;
 import c3::lexer;
 import std::collections::list;
 import std::io;
+import std::core::mem::alloc;
 
 const Check TEMP_ESCAPES_FN = {
 	.name          = "temp-escapes-fn",
@@ -17,14 +18,12 @@ const Check TEMP_ESCAPES_FN = {
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_temp_escapes_fn,
+	.visit         = &visit_temp_escapes_fn,
+	.make_state    = &make_temp_escapes_fn_state,
 };
 
-fn void run_temp_escapes_fn(Ctx* ctx, Unit* u)
-{
-	TempEscapesFnWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_temp_escapes_fn, &w);
-}
+fn any make_temp_escapes_fn_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, TempEscapesFnWalker, { .ctx = ctx, .unit = u });
 
 struct TempEscapesFnWalker
 {

@@ -2,6 +2,7 @@
 module c3vet;
 
 import c3::parser;
+import std::core::mem::alloc;
 
 const Check UNUSED_CATCH_BINDING = {
 	.name          = "unused-catch-binding",
@@ -9,16 +10,14 @@ const Check UNUSED_CATCH_BINDING = {
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_unused_catch_binding,
+	.visit         = &visit_unused_catch_binding,
+	.make_state    = &make_unused_catch_binding_state,
 };
 
 struct UnusedCatchBindingWalker { Ctx* ctx; Unit* unit; }
 
-fn void run_unused_catch_binding(Ctx* ctx, Unit* u)
-{
-	UnusedCatchBindingWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_unused_catch_binding, &w);
-}
+fn any make_unused_catch_binding_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, UnusedCatchBindingWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_unused_catch_binding(Ast* ast, NodeId id, any context) @local
 {

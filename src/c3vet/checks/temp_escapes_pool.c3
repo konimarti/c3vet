@@ -11,6 +11,7 @@ import c3::parser;
 import c3::lexer;
 import std::collections::list;
 import std::io;
+import std::core::mem::alloc;
 
 const Check TEMP_ESCAPES_POOL = {
 	.name          = "temp-escapes-pool",
@@ -18,14 +19,12 @@ const Check TEMP_ESCAPES_POOL = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_temp_escapes_pool,
+	.visit         = &visit_temp_escapes_pool,
+	.make_state    = &make_temp_escapes_pool_state,
 };
 
-fn void run_temp_escapes_pool(Ctx* ctx, Unit* u)
-{
-	TempEscapesPoolWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_temp_escapes_pool, &w);
-}
+fn any make_temp_escapes_pool_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, TempEscapesPoolWalker, { .ctx = ctx, .unit = u });
 
 struct TempEscapesPoolWalker
 {

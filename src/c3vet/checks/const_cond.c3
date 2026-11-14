@@ -3,6 +3,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check CONST_COND = {
 	.name          = "const-cond",
@@ -10,7 +11,8 @@ const Check CONST_COND = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_const_cond,
+	.visit         = &visit_const_cond,
+	.make_state    = &make_const_cond_state,
 };
 
 struct ConstCondWalker
@@ -19,11 +21,8 @@ struct ConstCondWalker
 	Unit* unit;
 }
 
-fn void run_const_cond(Ctx* ctx, Unit* u)
-{
-	ConstCondWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_const_cond, &w);
-}
+fn any make_const_cond_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, ConstCondWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 {

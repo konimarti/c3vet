@@ -18,6 +18,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check LOOP_NO_ADVANCE = {
 	.name          = "loop-no-advance",
@@ -25,14 +26,9 @@ const Check LOOP_NO_ADVANCE = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_loop_no_advance,
+	.visit         = &visit_loop_no_advance,
+	.make_state    = &make_loop_no_advance_state,
 };
-
-fn void run_loop_no_advance(Ctx* ctx, Unit* u)
-{
-	LoopNoAdvanceWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_loop_no_advance, &w);
-}
 
 <* Carries the engine's two pointers through `walk`'s `any` context. *>
 struct LoopNoAdvanceWalker
@@ -40,6 +36,9 @@ struct LoopNoAdvanceWalker
 	Ctx*  ctx;
 	Unit* unit;
 }
+
+fn any make_loop_no_advance_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, LoopNoAdvanceWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_loop_no_advance(Ast* ast, NodeId id, any ctx) @local
 {

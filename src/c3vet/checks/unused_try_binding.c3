@@ -2,6 +2,7 @@
 module c3vet;
 
 import c3::parser;
+import std::core::mem::alloc;
 
 const Check UNUSED_TRY_BINDING = {
 	.name          = "unused-try-binding",
@@ -9,16 +10,14 @@ const Check UNUSED_TRY_BINDING = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_unused_try_binding,
+	.visit         = &visit_unused_try_binding,
+	.make_state    = &make_unused_try_binding_state,
 };
 
 struct UnusedTryBindingWalker { Ctx* ctx; Unit* unit; }
 
-fn void run_unused_try_binding(Ctx* ctx, Unit* u)
-{
-	UnusedTryBindingWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_unused_try_binding, &w);
-}
+fn any make_unused_try_binding_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, UnusedTryBindingWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_unused_try_binding(Ast* ast, NodeId id, any context) @local
 {

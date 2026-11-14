@@ -4,6 +4,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check UNUSED_IMPORT = {
 	.name          = "unused-import",
@@ -11,21 +12,19 @@ const Check UNUSED_IMPORT = {
 	.tier          = Tier.PROJECT,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_unused_import,
+	.visit         = &visit_unused_import,
+	.make_state    = &make_unused_import_state,
 };
 
 struct UnusedImportWalker { Ctx* ctx; Unit* unit; }
 
-fn void run_unused_import(Ctx* ctx, Unit* u)
-{
-	if (!ctx.table) return;
-	UnusedImportWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_unused_import, &w);
-}
+fn any make_unused_import_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, UnusedImportWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_unused_import(Ast* ast, NodeId id, any context) @local
 {
 	UnusedImportWalker* w = (UnusedImportWalker*)context;
+	if (!w.ctx.table) return true;
 	if (ast.kind(id) != NodeKind.IMPORT) return true;
 	foreach (child : ast.children(id))
 	{

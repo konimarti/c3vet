@@ -17,6 +17,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check EMPTY_LOOP_BODY = {
 	.name          = "empty-loop-body",
@@ -24,14 +25,9 @@ const Check EMPTY_LOOP_BODY = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_empty_loop_body,
+	.visit         = &visit_empty_loop_body,
+	.make_state    = &make_empty_loop_body_state,
 };
-
-fn void run_empty_loop_body(Ctx* ctx, Unit* u)
-{
-	EmptyLoopBodyWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_empty_loop_body, &w);
-}
 
 <* Carries the engine's two pointers through `walk`'s `any` context. *>
 struct EmptyLoopBodyWalker
@@ -39,6 +35,9 @@ struct EmptyLoopBodyWalker
 	Ctx*  ctx;
 	Unit* unit;
 }
+
+fn any make_empty_loop_body_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, EmptyLoopBodyWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_empty_loop_body(Ast* ast, NodeId id, any ctx) @local
 {

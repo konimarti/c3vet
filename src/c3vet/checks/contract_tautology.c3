@@ -35,6 +35,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check CONTRACT_TAUTOLOGY = {
 	.name          = "contract-tautology",
@@ -42,7 +43,8 @@ const Check CONTRACT_TAUTOLOGY = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_contract_tautology,
+	.visit         = &visit_contract_tautology,
+	.make_state    = &make_contract_tautology_state,
 };
 
 struct ContractTautologyWalker
@@ -51,11 +53,8 @@ struct ContractTautologyWalker
 	Unit* unit;
 }
 
-fn void run_contract_tautology(Ctx* ctx, Unit* u)
-{
-	ContractTautologyWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_contract_tautology, &w);
-}
+fn any make_contract_tautology_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, ContractTautologyWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_contract_tautology(Ast* ast, NodeId id, any context) @local
 {

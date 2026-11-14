@@ -9,6 +9,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check TEMP_WRONG_FREE = {
 	.name          = "temp-wrong-free",
@@ -16,14 +17,12 @@ const Check TEMP_WRONG_FREE = {
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_temp_wrong_free,
+	.visit         = &visit_temp_wrong_free,
+	.make_state    = &make_temp_wrong_free_state,
 };
 
-fn void run_temp_wrong_free(Ctx* ctx, Unit* u)
-{
-	TempWrongFreeWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_temp_wrong_free, &w);
-}
+fn any make_temp_wrong_free_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, TempWrongFreeWalker, { .ctx = ctx, .unit = u });
 
 struct TempWrongFreeWalker
 {

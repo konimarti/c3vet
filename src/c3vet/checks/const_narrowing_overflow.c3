@@ -3,6 +3,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check CONST_NARROWING_OVERFLOW = {
 	.name          = "const-narrowing-overflow",
@@ -10,7 +11,8 @@ const Check CONST_NARROWING_OVERFLOW = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_const_narrowing_overflow,
+	.visit         = &visit_narrowing,
+	.make_state    = &make_narrowing_state,
 };
 
 struct NarrowingWalker
@@ -19,11 +21,8 @@ struct NarrowingWalker
 	Unit* unit;
 }
 
-fn void run_const_narrowing_overflow(Ctx* ctx, Unit* u)
-{
-	NarrowingWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_narrowing, &w);
-}
+fn any make_narrowing_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, NarrowingWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_narrowing(Ast* ast, NodeId id, any context) @local
 {

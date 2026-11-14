@@ -3,6 +3,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check FORCE_UNWRAP = {
 	.name          = "force-unwrap",
@@ -10,16 +11,14 @@ const Check FORCE_UNWRAP = {
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_force_unwrap,
+	.visit         = &visit_force_unwrap,
+	.make_state    = &make_force_unwrap_state,
 };
 
 struct ForceUnwrapWalker { Ctx* ctx; Unit* unit; }
 
-fn void run_force_unwrap(Ctx* ctx, Unit* u)
-{
-	ForceUnwrapWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_force_unwrap, &w);
-}
+fn any make_force_unwrap_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, ForceUnwrapWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_force_unwrap(Ast* ast, NodeId id, any context) @local
 {

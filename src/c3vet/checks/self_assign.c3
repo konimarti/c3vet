@@ -9,6 +9,7 @@
 module c3vet;
 
 import c3::parser;
+import std::core::mem::alloc;
 
 const Check SELF_ASSIGN = {
 	.name          = "self-assign",
@@ -16,14 +17,9 @@ const Check SELF_ASSIGN = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_self_assign,
+	.visit         = &visit_self_assign,
+	.make_state    = &make_self_assign_state,
 };
-
-fn void run_self_assign(Ctx* ctx, Unit* u)
-{
-	SelfAssignWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_self_assign, &w);
-}
 
 <* Carries the engine's two pointers through `walk`'s `any` context. *>
 struct SelfAssignWalker
@@ -31,6 +27,9 @@ struct SelfAssignWalker
 	Ctx*  ctx;
 	Unit* unit;
 }
+
+fn any make_self_assign_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, SelfAssignWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_self_assign(Ast* ast, NodeId id, any ctx) @local
 {

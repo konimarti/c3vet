@@ -3,6 +3,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check SILENCED_FAULT = {
 	.name          = "silenced-fault",
@@ -10,16 +11,14 @@ const Check SILENCED_FAULT = {
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_silenced_fault,
+	.visit         = &visit_silenced_fault,
+	.make_state    = &make_silenced_fault_state,
 };
 
 struct SilencedFaultWalker { Ctx* ctx; Unit* unit; }
 
-fn void run_silenced_fault(Ctx* ctx, Unit* u)
-{
-	SilencedFaultWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_silenced_fault, &w);
-}
+fn any make_silenced_fault_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, SilencedFaultWalker, { .ctx = ctx, .unit = u });
 
 fn bool visit_silenced_fault(Ast* ast, NodeId id, any context) @local
 {

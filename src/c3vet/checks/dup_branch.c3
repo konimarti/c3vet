@@ -3,6 +3,7 @@ module c3vet;
 
 import c3::parser;
 import std::collections::list;
+import std::core::mem::alloc;
 
 const Check DUP_BRANCH = {
 	.name          = "dup-branch",
@@ -10,7 +11,8 @@ const Check DUP_BRANCH = {
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
-	.run           = &run_dup_branch,
+	.visit         = &visit_dup_branch,
+	.make_state    = &make_dup_branch_state,
 };
 
 struct DupBranchWalker
@@ -20,11 +22,11 @@ struct DupBranchWalker
 	List{NodeId}  else_if_continuations;
 }
 
-fn void run_dup_branch(Ctx* ctx, Unit* u)
+fn any make_dup_branch_state(Ctx* ctx, Unit* u, Allocator a) @local
 {
-	DupBranchWalker w = { .ctx = ctx, .unit = u };
-	w.else_if_continuations.tinit();
-	parser::walk(u.ast(), u.root(), &visit_dup_branch, &w);
+	DupBranchWalker* w = alloc::new(a, DupBranchWalker, { .ctx = ctx, .unit = u });
+	w.else_if_continuations.init(a);
+	return w;
 }
 
 fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local

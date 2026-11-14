@@ -8,6 +8,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check COND_NOT_BOOL = {
 	.name          = "cond-not-bool",
@@ -15,7 +16,8 @@ const Check COND_NOT_BOOL = {
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_cond_not_bool,
+	.visit         = &visit_cond_not_bool,
+	.make_state    = &make_cond_not_bool_state,
 };
 
 struct CondNotBoolWalker
@@ -25,11 +27,8 @@ struct CondNotBoolWalker
 	NodeId current_fn;
 }
 
-fn void run_cond_not_bool(Ctx* ctx, Unit* u)
-{
-	CondNotBoolWalker w = { .ctx = ctx, .unit = u, .current_fn = parser::NONE };
-	parser::walk(u.ast(), u.root(), &visit_cond_not_bool, &w);
-}
+fn any make_cond_not_bool_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, CondNotBoolWalker, { .ctx = ctx, .unit = u, .current_fn = parser::NONE });
 
 fn bool visit_cond_not_bool(Ast* ast, NodeId id, any context) @local
 {

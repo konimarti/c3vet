@@ -63,6 +63,10 @@ struct Ctx
 }
 
 alias CheckFn = fn void(Ctx* ctx, Unit* unit);
+<* A check's own `parser::walk` visitor -- identical shape to `parser::VisitFn`. *>
+alias CheckVisitFn = fn bool(Ast* ast, NodeId id, any ctx);
+<* Builds a check's per-unit walker state once, before the shared walk runs. *>
+alias CheckMakeStateFn = fn any(Ctx* ctx, Unit* unit, Allocator a);
 
 struct Check
 {
@@ -75,7 +79,22 @@ struct Check
 	bool    default_on;
 	<* Skip files containing ERROR_* nodes. Almost always true. *>
 	bool    skip_on_error;
+	<*
+	 Set for a check that does not fit a single top-down AST visit (`parse`
+	 reads `u.parsed.errors` directly; `defer-in-loop` needs a depth counter
+	 `parser::walk` has no hook for; `unused-private-decl` only walks the
+	 file's top-level declarations, not the whole tree). Mutually exclusive
+	 with `visit`/`make_state` -- the engine uses whichever pair is set.
+	*>
 	CheckFn run;
+	<*
+	 A check's own `parser::walk` visitor, run as part of the ONE shared
+	 walk `run_checks` does across every such check, instead of each check
+	 walking the whole tree on its own. Paired with `make_state`.
+	*>
+	CheckVisitFn visit;
+	<* Builds this check's walker struct for one unit, handed back to `visit`. *>
+	CheckMakeStateFn make_state;
 }
 
 <*
@@ -154,6 +173,36 @@ fn Tier max_tier(Check[] enabled)
 	return t;
 }
 
+<* One walk-based check's visitor, paired with the state `make_state` built for it. *>
+struct ActiveVisit
+{
+	CheckVisitFn visit;
+	any          state;
+}
+
+<* Carries every active walk-based check's visitor through the one shared `parser::walk`. *>
+struct SharedWalkState
+{
+	List{ActiveVisit} active;
+}
+
+<*
+ Calls every active check's visitor at this node. Descends unless every
+ single one of them wants to stop -- a check that returns false here only
+ means "nothing further down this subtree matters to ME", which must never
+ suppress a sibling check that still needs to see those nodes.
+*>
+fn bool run_shared_visit(Ast* ast, NodeId id, any context) @local
+{
+	SharedWalkState* s = (SharedWalkState*)context;
+	bool keep_going = false;
+	foreach (&a : s.active)
+	{
+		if (a.visit(ast, id, a.state)) keep_going = true;
+	}
+	return keep_going;
+}
+
 <*
  Run `enabled` over one unit.
 
@@ -162,6 +211,12 @@ fn Tier max_tier(Check[] enabled)
  needs `Tier.LOCAL` or above -- a run with only SYNTAX checks never pays for
  either, and a unit already carrying them (e.g. a second `run_checks` call
  against the same `Unit`) is not rebuilt.
+
+ Every check that visits the AST (`visit`/`make_state` set) shares ONE walk
+ over the tree instead of each walking it separately -- with N checks
+ enabled, the file was otherwise parsed once but walked N times. A check
+ that cannot fit that shape (`run` set instead) still gets its own call, as
+ before.
 *>
 fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 {
@@ -171,9 +226,26 @@ fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 		u.scopes = alloc::new(a, Scopes, build_scopes(u.ast(), u.toks(), a));
 		u.flow = alloc::new(a, Flow, build_flow(u.ast(), u.toks(), a));
 	}
+
+	Allocator a = tmem;
+	SharedWalkState walk_state;
+	walk_state.active.tinit();
+
 	foreach (c : enabled)
 	{
 		if (c.skip_on_error && u.has_errors()) continue;
-		c.run(ctx, u);
+		if (c.visit && c.make_state)
+		{
+			walk_state.active.push({ .visit = c.visit, .state = c.make_state(ctx, u, a) });
+		}
+		else
+		{
+			c.run(ctx, u);
+		}
+	}
+
+	if (walk_state.active.len())
+	{
+		parser::walk(u.ast(), u.root(), &run_shared_visit, &walk_state);
 	}
 }

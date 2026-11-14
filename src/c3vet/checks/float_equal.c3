@@ -9,6 +9,7 @@ module c3vet;
 
 import c3::parser;
 import c3::lexer;
+import std::core::mem::alloc;
 
 const Check FLOAT_EQUAL = {
 	.name          = "float-equal",
@@ -16,7 +17,8 @@ const Check FLOAT_EQUAL = {
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
-	.run           = &run_float_equal,
+	.visit         = &visit_float_equal,
+	.make_state    = &make_float_equal_state,
 };
 
 struct FloatEqualWalker
@@ -25,11 +27,8 @@ struct FloatEqualWalker
 	Unit* unit;
 }
 
-fn void run_float_equal(Ctx* ctx, Unit* u)
-{
-	FloatEqualWalker w = { .ctx = ctx, .unit = u };
-	parser::walk(u.ast(), u.root(), &visit_float_equal, &w);
-}
+fn any make_float_equal_state(Ctx* ctx, Unit* u, Allocator a) @local
+	=> alloc::new(a, FloatEqualWalker, { .ctx = ctx, .unit = u });
 
 <*
  Only reacts to FN_DECL/MACRO_DECL, then scans that one function's body with
