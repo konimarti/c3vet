@@ -114,10 +114,15 @@ fn int main(String[] argv)
 			table_roots.push("src");
 		}
 		table_roots.push("lib");
-		String std_root = c3vet::find_stdlib_root(tmem);
-		if (std_root.len) table_roots.push(std_root);
 
 		c3vet::build_table(&table, table_roots.array_view(), mem);
+
+		// The stdlib is indexed separately and filtered to only the modules
+		// this project actually imports -- see add_stdlib_declarations's own
+		// doc comment for why (indexing all of it unconditionally cost over
+		// 100ms by itself, for a project with a single file).
+		String std_root = c3vet::find_stdlib_root(tmem);
+		c3vet::add_stdlib_declarations(&table, std_root, files.array_view(), mem);
 		ctx.table = &table;
 	}
 

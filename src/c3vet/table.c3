@@ -182,6 +182,96 @@ fn void build_table(DeclTable* t, String[] roots, Allocator a)
 	foreach (f : files) index_file(t, f, a);
 }
 
+<*
+ Adds declarations from `stdlib_root` to an already-built table, restricted
+ to the modules actually imported -- directly, or as a submodule of an
+ import -- by any file in `project_files`. Not the whole real standard
+ library: measured indexing every stdlib file regardless of relevance at
+ over 100ms by itself, for a one-file project that uses a small fraction
+ of it. `module_matches` is the same submodule-prefix rule `exported_names`
+ already uses ("import std::net" is used by "std::net::tcp" too), so a
+ stdlib file is included under exactly the same rule a usage check would
+ use to decide the import itself is used.
+
+ Each stdlib file is lexed (`peek_module_name`) to learn its module before
+ deciding whether the much more expensive full parse-and-index
+ (`index_file`) is worth doing on it -- lexing alone is roughly half of a
+ full file's indexing cost (measured ~32 MB/s lexing vs ~15 MB/s full
+ parse over the real corpus), so skipping full indexing for an irrelevant
+ file still leaves its lex cost paid, but a project's own imports are
+ almost always a small fraction of the standard library, so the saved
+ parses dominate.
+*>
+fn void add_stdlib_declarations(DeclTable* t, String stdlib_root, String[] project_files, Allocator a)
+{
+	if (!stdlib_root.len) return;
+
+	List{String} needed;
+	needed.tinit();
+	foreach (f : project_files) collect_imports_one(f, &needed);
+	if (!needed.len()) return;
+
+	List{String} stdlib_files;
+	stdlib_files.tinit();
+	collect_indexed(&stdlib_files, stdlib_root);
+
+	foreach (f : stdlib_files)
+	{
+		String mod = peek_module_name(f);
+		if (!mod.len) continue;
+		bool relevant = false;
+		foreach (n : needed)
+		{
+			if (module_matches(mod, n)) { relevant = true; break; }
+		}
+		if (relevant) index_file(t, f, a);
+	}
+}
+
+<* Every `IMPORT`'s module path in one file, appended to `out` (not deduplicated -- a handful of repeats costs nothing next to the parse itself). *>
+fn void collect_imports_one(String path_, List{String}* out) @local
+{
+	@pool()
+	{
+		char[]? bytes = file::load(tmem, path_);
+		if (catch bytes) return;
+		ParseResult r = parser::parse(tmem, (String)bytes);
+		foreach (c : r.ast.children(r.ast.root))
+		{
+			if (r.ast.kind(c) != NodeKind.IMPORT) continue;
+			foreach (child : r.ast.children(c))
+			{
+				if (r.ast.kind(child) != NodeKind.PATH) continue;
+				out.push(path_text(&r.toks, r.ast.node(child), out.allocator));
+			}
+		}
+	};
+}
+
+<* The module path of one file, lexed only -- not fully parsed -- for the cheapest possible answer to "is this file relevant at all". *>
+fn String peek_module_name(String path_) @local
+{
+	char[]? bytes = file::load(tmem, path_);
+	if (catch bytes) return "";
+	TokenList toks;
+	toks.init(tmem);
+	toks.lex((String)bytes);
+	for (uint i = 0; i < toks.len(); i++)
+	{
+		if (toks.type_at(i) != MODULE) continue;
+		DString s;
+		s.tinit();
+		for (uint j = i + 1; j < toks.len(); j++)
+		{
+			TokenType t = toks.type_at(j);
+			if (t != IDENT && t != SCOPE) break;
+			s.append(toks.text_at(j));
+		}
+		return s.str_view();
+	}
+	return "";
+}
+
 fn bool collect_indexed(List{String}* out, String target) @local
 {
 	Path? p = path::tnew(target);
