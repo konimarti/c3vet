@@ -11,7 +11,17 @@ module c3vet;
 <* Every check that exists, in a stable order. *>
 const Check[] ALL_CHECKS = {
 	PARSE,
-	STUB_EMPTY_BLOCK,
+	SELF_ASSIGN,
+	SELF_COMPARE,
+	SELF_OP,
+	DUP_BRANCH,
+	CONST_COND,
+	CONST_INT_DIV_TO_FLOAT,
+	CONST_NARROWING_OVERFLOW,
+	EMPTY_BODY,
+	EMPTY_LOOP_BODY,
+	LOOP_NO_ADVANCE,
+	UNUSED_LABEL,
 };
 
 <*
