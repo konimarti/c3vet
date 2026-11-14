@@ -37,21 +37,28 @@ fn bool visit_empty_body(Ast* ast, NodeId id, any ctx) @local
 {
 	EmptyBodyWalker* w = (EmptyBodyWalker*)ctx;
 	Node* n = ast.node(id);
-	NodeId body = parser::NONE;
 	switch (n.kind)
 	{
 		case IF:
-			body = ast.children(id)[1];
+		{
+			NodeId[] kids = ast.children(id);
+			report_if_empty(w, ast, kids[1]);
+			report_if_empty(w, ast, kids[2]);
+		}
 		case WHILE:
-			body = n.rhs;
+			report_if_empty(w, ast, n.rhs);
 		default:
-			return true;
+			break;
 	}
+	return true;
+}
+
+fn void report_if_empty(EmptyBodyWalker* w, Ast* ast, NodeId body) @local
+{
 	if (is_empty_commentless_block(ast, w.unit.toks(), body))
 	{
 		w.ctx.report(w.unit, body, "empty-body", "empty body");
 	}
-	return true;
 }
 
 fn bool is_empty_commentless_block(Ast* ast, TokenList* toks, NodeId id) @local

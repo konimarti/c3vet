@@ -21,4 +21,6 @@ fn void main()
 	if (c == 1) {} else { c = 2; } // want "empty body"
 
 	if (c == 1) {}                 // c3vet:ignore[empty-body]
+
+	if (c == 1) { c = 2; } else {} // want "empty body"
 }
