@@ -185,9 +185,59 @@ fn void index_file(DeclTable* t, String path_, Allocator a) @local
 	{
 		char[]? bytes = file::load(tmem, path_);
 		if (catch bytes) return;
-		ParseResult r = parser::parse(tmem, (String)bytes);
+		ParseResult r = parser::parse(tmem, strip_bodies((String)bytes, tmem));
 		index_top_level(t, &r.ast, &r.toks, r.ast.root, a);
 	};
+}
+
+<*
+ Blank every top-level `{ ... }` body (recursively -- nested braces inside
+ stay blanked too) before handing the file to `parser::parse`.
+
+ Declaration-only indexing does not need bodies, and the full parser is not
+ required to fully parse arbitrary real-world body syntax: verified
+ empirically that `lib/std/io/io.c3` contains a body construct (a compile-time
+ `$typeof(...)`-typed local declaration) this parser's statement grammar does
+ not resynchronize cleanly from, which swallows every later top-level
+ declaration in the file. Blanking bodies first sidesteps that case entirely
+ -- `printfn`/`fprintf`/`printf` (37 top-level decls, 0 errors) are indexed
+ where parsing the raw file found only 5 before the first failure.
+
+ Brace matching is done over tokens from the real lexer, not raw bytes, so a
+ `"{"` inside a string or comment is never mistaken for a body boundary.
+*>
+fn String strip_bodies(String src, Allocator a) @local
+{
+	TokenList toks;
+	toks.init(tmem);
+	toks.lex(src);
+
+	String buf = src.copy(a);
+	int depth = 0;
+	uint open_offset = 0;
+	uint n = (uint)toks.len();
+	for (uint i = 0; i < n; i++)
+	{
+		lexer::Token t = toks.tok(i);
+		if (t.type == TokenType.LBRACE)
+		{
+			if (depth == 0) open_offset = (uint)(t.offset + t.len);
+			depth++;
+		}
+		else if (t.type == TokenType.RBRACE)
+		{
+			depth--;
+			if (depth == 0)
+			{
+				uint close_offset = (uint)t.offset;
+				for (uint b = open_offset; b < close_offset; b++)
+				{
+					if (buf[b] != '\n') buf[b] = ' ';
+				}
+			}
+		}
+	}
+	return buf;
 }
 
 fn void index_top_level(DeclTable* t, Ast* ast, TokenList* toks, NodeId root, Allocator a) @local
