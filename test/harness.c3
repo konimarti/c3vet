@@ -32,9 +32,11 @@ module c3vet::testdata;
 
 import c3vet;
 import c3::parser;
+import c3::parser::conformance;
 import c3::lexer;
 import std::collections::list;
 import std::io;
+import std::io::path;
 
 struct Want
 {
@@ -113,4 +115,66 @@ fn void collect_wants(List{Want}* out, TokenList* toks) @local
 		if (end < 0) continue;
 		out.push({ .ln = t.ln, .text = rest[..(usz)end - 1] });
 	}
+}
+
+<*
+ Run `check_name`, with only it enabled, over every `*.c3`/`*.c3i` file in the
+ same 642-file conformance corpus Phase 1 used (the sibling c3c checkout's
+ `lib/` and `test/unit/`), and return the total finding count.
+
+ This is the false-positive measurement every Phase 2 check's gate requires
+ ("zero false positives over the 642-file conformance corpus") -- call it
+ from a `@test` that asserts on the count you expect, so a regression is a
+ normal test failure rather than something only visible in TEST LOG on
+ failure (c3c's test runner only surfaces `io::printfn` output when the test
+ itself fails).
+
+ Returns 0 immediately, without asserting, when `C3C_CHECKOUT` is not found
+ -- same policy as `conformance_corpus_is_clean`, so this is safe to call
+ from a machine that does not have the sibling repo.
+*>
+fn sz measure_fp(String check_name)
+{
+	String base = conformance::checkout_dir();
+	if (!path::exists(path::tnew(base) ?? (Path){})) return 0;
+
+	String lib_dir = string::tformat("%s/lib", base);
+	String unit_dir = string::tformat("%s/test/unit", base);
+	String[] files = conformance::find_c3_files(lib_dir);
+	String[] unit_files = conformance::find_c3_files(unit_dir);
+
+	sz idx = c3vet::find_check(check_name);
+	assert(idx >= 0, "no such check '%s'", check_name);
+	Check[1] one = { c3vet::ALL_CHECKS[idx] };
+
+	sz total = 0;
+	foreach (group : (String[][]){ files, unit_files })
+	{
+		foreach (f : group)
+		{
+			@pool()
+			{
+				char[]? bytes = file::load(tmem, f);
+				if (catch bytes) continue;
+
+				Unit u;
+				u.path = f;
+				u.src = (String)bytes;
+				u.parsed = parser::parse(tmem, u.src);
+				u.suppress.init(tmem);
+				u.suppress.collect(u.toks());
+
+				DiagnosticList diags;
+				diags.init(tmem);
+				Config cfg;
+				cfg.init(tmem);
+				Ctx ctx = { .config = &cfg, .out = &diags };
+				ctx.reported.init(tmem);
+
+				c3vet::run_checks(&ctx, &u, one[..]);
+				total += diags.len();
+			};
+		}
+	}
+	return total;
 }
