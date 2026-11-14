@@ -73,13 +73,18 @@ struct Summary
 	sz invariant_failures;
 	sz crashed;
 	<* First few failing paths, so a failure is diagnosable without rerunning. *>
-	String[8] detail;
+	String[16] detail;
 	sz detail_n;
 }
 
+<*
+ `why` and `path` may be backed by the caller's temp arena (e.g. inside the
+ per-file @pool() in `run_over`), which is reclaimed before this report is
+ read back. Copy with `mem` so the detail survives past that scope.
+*>
 fn void Summary.note(&self, String path, String why)
 {
-	if (self.detail_n < self.detail.len) self.detail[self.detail_n] = string::tformat("%s: %s", path, why);
+	if (self.detail_n < self.detail.len) self.detail[self.detail_n] = string::format(mem, "%s: %s", path, why);
 	self.detail_n++;
 }
 
@@ -103,13 +108,16 @@ fn Summary run_over(String[] files, bool require_no_errors)
 				if (r.has_errors())
 				{
 					s.with_errors++;
-					if (require_no_errors) s.note(f, r.errors.len() > 0 ? r.errors[0].msg : "lex failed");
 				}
 				Report rep = invariants::check(&r);
 				if (!rep.edges_valid || !rep.spans_nest)
 				{
 					s.invariant_failures++;
 					s.note(f, rep.detail);
+				}
+				else if (r.has_errors() && require_no_errors)
+				{
+					s.note(f, r.errors.len() > 0 ? r.errors[0].msg : "lex failed");
 				}
 			}
 		};
@@ -189,4 +197,3 @@ fn void resilience_corpus_does_not_crash() @test
 		"%d file(s) violate span/edge invariants even though those invariants must hold on ANY input",
 		s.invariant_failures);
 }
-
