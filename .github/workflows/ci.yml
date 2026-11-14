@@ -1,13 +1,9 @@
 name: CI
 
-# Not pushed/enabled yet -- written as part of Phase 5 hardening, kept local
-# until someone decides to actually wire this repo up to GitHub Actions.
-#
-# Gates, in order: build, unit tests, and -- only when a sibling c3c
-# checkout is available -- the differential oracle against the real
-# compiler (docs/ROADMAP.md section 6). The parser's own conformance and
-# resilience corpus gates live in its own repository now
-# (github.com/konimarti/parser.c3l, docs/DESIGN.md section 1.5), not here.
+# Gates, in order: build, unit tests, and the differential oracle against
+# the real compiler. The parser's own conformance and resilience corpus
+# gates live in its own repository now (github.com/konimarti/parser.c3l),
+# not here.
 
 on:
   push:
@@ -31,7 +27,7 @@ jobs:
             "https://github.com/c3lang/c3c/releases/latest/download/c3-linux.tar.gz"
           mkdir -p "$HOME/.local"
           tar -xzf c3c.tar.gz -C "$HOME/.local"
-          echo "$HOME/.local/c3/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/c3" >> "$GITHUB_PATH"
 
       - name: c3c build
         run: c3c build
@@ -53,7 +49,7 @@ jobs:
             "https://github.com/c3lang/c3c/releases/latest/download/c3-linux.tar.gz"
           mkdir -p "$HOME/.local"
           tar -xzf c3c.tar.gz -C "$HOME/.local"
-          echo "$HOME/.local/c3/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/c3" >> "$GITHUB_PATH"
 
       - name: Check out the c3c compiler source (the conformance corpus)
         uses: actions/checkout@v4
