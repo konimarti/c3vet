@@ -154,10 +154,35 @@ c3vet \-\-no\-suppress src/
 .PP
 .SH FILES
 .PP
-\fI.\&c3vet:ignore\fR\-style comments are the only per\-project configuration right
-now; there is no separate config file.\& (This is a known gap against
-\fIdocs/DESIGN.\&md\fR, which describes a planned \fIproject.\&json\fR / \fI.\&c3vet\fR config
-file that has not been implemented yet.\&)
+\fI.\&c3vet\fR
+.RS 4
+A JSON file in the project root, holding the same settings as the CLI
+flags:
+.PP
+.RE
+.nf
+.RS 4
+{"enable": ["a", "b"], "disable": ["c"], "no\-suppress": true}
+.fi
+.RE
+.PP
+.RS 4
+Wins over a "c3vet" key in \fIproject.\&json\fR if both exist.\& Either way,
+an explicit command\-line flag always overrides a file setting for
+that one check.\&
+.PP
+.RE
+\fIproject.\&json\fR
+.RS 4
+A "c3vet" key holding the same shape as \fI.\&c3vet\fR above, for a project
+that would rather not add a second file:
+.PP
+.RE
+.nf
+.RS 4
+{"c3vet": {"disable": ["c"]}}
+.fi
+.RE
 .PP
 .SH SEE ALSO
 .PP

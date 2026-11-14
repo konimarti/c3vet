@@ -81,6 +81,16 @@ c3vet --no-suppress      # audit run: ignore every suppression comment
 Exit codes: `0` clean, `1` findings, `2` tool error. Findings go to stdout and
 tool errors to stderr, so `c3vet | wc -l` works in CI.
 
+To fix the same `--enable`/`--disable`/`--no-suppress` choices for a project
+instead of retyping them, drop them in a `.c3vet` file (or a `"c3vet"` key in
+`project.json`) at the project root:
+
+```json
+{"disable": ["cond-not-bool"]}
+```
+
+A command-line flag always wins over whatever the file says.
+
 See `man ./c3vet.1` for the full manual.
 
 Not every check is on by default — a check only runs automatically once it

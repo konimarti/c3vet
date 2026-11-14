@@ -119,10 +119,25 @@ c3vet --no-suppress src/
 
 # FILES
 
-_.c3vet:ignore_-style comments are the only per-project configuration right
-now; there is no separate config file. (This is a known gap against
-_docs/DESIGN.md_, which describes a planned _project.json_ / _.c3vet_ config
-file that has not been implemented yet.)
+_.c3vet_
+	A JSON file in the project root, holding the same settings as the CLI
+	flags:
+
+```
+{"enable": ["a", "b"], "disable": ["c"], "no-suppress": true}
+```
+
+	Wins over a "c3vet" key in _project.json_ if both exist. Either way,
+	an explicit command-line flag always overrides a file setting for
+	that one check.
+
+_project.json_
+	A "c3vet" key holding the same shape as _.c3vet_ above, for a project
+	that would rather not add a second file:
+
+```
+{"c3vet": {"disable": ["c"]}}
+```
 
 # SEE ALSO
 
