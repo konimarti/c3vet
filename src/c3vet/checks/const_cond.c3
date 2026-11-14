@@ -1,0 +1,77 @@
+<* Flag conditions determined entirely by boolean or integer literals. *>
+module c3vet;
+
+import c3::parser;
+import c3::lexer;
+
+const Check CONST_COND = {
+	.name          = "const-cond",
+	.doc           = "a control-flow condition is determined by literals alone",
+	.tier          = Tier.SYNTAX,
+	.default_on    = false,
+	.skip_on_error = true,
+	.run           = &run_const_cond,
+};
+
+struct ConstCondWalker
+{
+	Ctx*  ctx;
+	Unit* unit;
+}
+
+fn void run_const_cond(Ctx* ctx, Unit* u)
+{
+	ConstCondWalker w = { .ctx = ctx, .unit = u };
+	parser::walk(u.ast(), u.root(), &visit_const_cond, &w);
+}
+
+fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
+{
+	ConstCondWalker* w = (ConstCondWalker*)context;
+	NodeId condition = parser::NONE;
+	switch (ast.kind(id))
+	{
+		case NodeKind.IF:
+		{
+			NodeId[] kids = ast.children(id);
+			if (kids.len == 3) condition = kids[0];
+		}
+		case NodeKind.WHILE: condition = ast.node(id).lhs;
+		case NodeKind.DO: condition = ast.node(id).rhs;
+		case NodeKind.FOR:
+		{
+			NodeId[] kids = ast.children(id);
+			if (kids.len == 4) condition = kids[1];
+		}
+		default: return true;
+	}
+	if (condition != parser::NONE && is_literal_condition(ast, w.unit.toks(), condition))
+	{
+		w.ctx.report(w.unit, id, CONST_COND.name, "condition is determined by literals alone");
+	}
+	return true;
+}
+
+fn bool is_literal_condition(Ast* ast, TokenList* toks, NodeId id) @local
+{
+	NodeKind kind = ast.kind(id);
+	if (kind == NodeKind.BOOL_LIT || kind == NodeKind.INT_LIT) return true;
+	if (kind != NodeKind.BINARY) return false;
+	TokenType op = toks.type_at(ast.node(id).tok);
+	if (op != LESS && op != GREATER && op != LESS_EQ && op != GREATER_EQ && op != EQEQ && op != NOT_EQUAL)
+	{
+		return false;
+	}
+	return is_literal(ast, ast.node(id).lhs) && is_literal(ast, ast.node(id).rhs);
+}
+
+fn bool is_literal(Ast* ast, NodeId id) @local
+{
+	switch (ast.kind(id))
+	{
+		case NodeKind.INT_LIT: case NodeKind.REAL_LIT: case NodeKind.BOOL_LIT:
+		case NodeKind.STRING_LIT: case NodeKind.CHAR_LIT: case NodeKind.BYTES_LIT:
+			return true;
+		default: return false;
+	}
+}
