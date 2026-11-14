@@ -446,7 +446,9 @@ fn void test_casts_paths_literals() @test
 		assert(r.ast.node(n.rhs).kind == INIT_LIST, "operand is INIT_LIST");
 	}
 
-	// 3. Path expressions: `std::io::printfn` and `int::max`
+	// 3. Path expressions: `std::io::printfn` (a module path) vs
+	// `int::max` (a type-property access -- MEMBER_ACCESS with the type
+	// as the object, not PATH; a bare type is never a module path).
 	{
 		ParseResult r = parse_snippet("std::io::printfn");
 		defer r.free();
@@ -463,7 +465,7 @@ fn void test_casts_paths_literals() @test
 		assert(rep.spans_nest && rep.edges_valid, "invariants hold: %s", rep.detail);
 
 		NodeId e = get_expr(&r);
-		assert(r.ast.node(e).kind == PATH, "top is PATH");
+		assert(r.ast.node(e).kind == MEMBER_ACCESS, "top is MEMBER_ACCESS");
 	}
 
 	// 4. Literals: string concatenation, bytes, bool, null
