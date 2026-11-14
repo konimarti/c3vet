@@ -91,8 +91,13 @@ fn bool project_module_has_name(UnusedPrivateDeclWalker* w, String mod, String n
 	if (!root.len) return source_has_name(w.unit.toks(), name, own_tok);
 	List{String} files;
 	files.tinit();
-	walk_sources(&files, string::tformat("%s/src", root));
-	walk_sources(&files, string::tformat("%s/test", root));
+	// Walk the whole project root, not just "src"/"test": a module's sibling
+	// files are not guaranteed to live under either -- confirmed empirically
+	// against the real standard library, where std::encoding::json spans
+	// json.c3 and json_marshal.c3 under "lib", which a src/test-only walk
+	// silently missed, reporting a cross-file-referenced @private decl as
+	// unused.
+	walk_sources(&files, root);
 	foreach (path_ : files)
 	{
 		@pool()
@@ -124,6 +129,30 @@ fn bool source_has_name_except(TokenList* toks, String name, uint skip_tok) @loc
 	{
 		if (i == skip_tok) continue;
 		if (toks.text_at(i) == name) return true;
+	}
+	return contract_trivia_has_name(toks, name);
+}
+
+<*
+ A `@require`/`@ensure`-style contract is a single CONTRACT trivia token,
+ excluded from `toks`' code stream the loop above scans -- confirmed
+ empirically that a declaration referenced only inside a contract was
+ otherwise reported as unused. Contracts are read the same way the Phase 4
+ contract checks read them: `lexer::ContractLexer` over the raw trivia text.
+*>
+fn bool contract_trivia_has_name(TokenList* toks, String name) @local
+{
+	foreach (t : toks.all)
+	{
+		if (t.type != CONTRACT || t.text.len < 4) continue;
+		ContractLexer cl;
+		cl.init(t.text);
+		while (true)
+		{
+			Token? ct = cl.next();
+			if (catch ct) break;
+			if (ct.text == name) return true;
+		}
 	}
 	return false;
 }
