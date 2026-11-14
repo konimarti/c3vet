@@ -5,17 +5,20 @@ import c3::parser::invariants;
 
 fn void if_and_while_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { if (x) { y; } else { z; } while (x) y; }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { if (x) { y; } else { z; } while (x) y; while (String? line = io::treadline(stream), @catch(line) != io::EOF) consume(line); }");
 	defer r.free();
 	NodeId if_id = parser::NONE;
 	bool while_seen = false;
+	bool optional_condition_decl = false;
 	for (NodeId i = 1; i < r.ast.len(); i++)
 	{
 		if (r.ast.kind(i) == IF) if_id = i;
 		if (r.ast.kind(i) == WHILE) while_seen = true;
+		if (r.ast.kind(i) == VAR_DECL && r.ast.kind(r.ast.node(i).lhs) == TYPE_OPTIONAL) optional_condition_decl = true;
 	}
 	assert(if_id != parser::NONE && r.ast.children(if_id).len == 3, "if has condition, then, else slots");
 	assert(while_seen, "while node is present");
+	assert(optional_condition_decl, "optional-typed condition declaration is represented");
 	assert(!r.has_errors(), "valid control flow parses cleanly");
 }
 
