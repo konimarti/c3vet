@@ -26,6 +26,9 @@ fn void verify_project_check(Check check, String path_, sz expected)
 	ctx.reported.init(tmem);
 	Check[1] one = { check };
 	c3vet::run_checks(&ctx, &u, one[..]);
+	// unused-private-decl caches project files across calls for the rest of
+	// the Ctx it was built for; each test builds its own short-lived one.
+	defer c3vet::free_project_cache();
 	assert(diags.len() == expected, "%s: expected %d finding(s), got %d (%s; %s)", path_, expected, diags.len(), diags.len() > 0 ? diags[0].msg : "", diags.len() > 1 ? diags[1].msg : "");
 
 	uint want_count = 0;
