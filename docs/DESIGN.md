@@ -364,26 +364,34 @@ struct Check
 ```c3
 struct Unit                 // one source file
 {
-    String     path;
-    TokenList  toks;
-    Ast        ast;
-    Scopes*    scopes;      // non-null iff some enabled check is >= LOCAL
-    Flow*      flow;        // non-null iff some enabled check is >= LOCAL
-    bool       lex_failed;
-    bool       has_errors;  // contains ERROR_* nodes
+    String         path;
+    String         src;
+    ParseResult    parsed;   // toks()/ast()/root()/has_errors() read through this
+    SuppressionSet suppress;
+    Scopes*        scopes;   // non-null iff some enabled check is >= LOCAL
+    Flow*          flow;     // non-null iff some enabled check is >= LOCAL
 }
 
 struct Ctx
 {
-    DeclTable* table;       // non-null iff some enabled check is PROJECT
-    Config*    config;
-    List{Diagnostic}* out;
+    DeclTable*      table;    // non-null iff some enabled check is PROJECT
+    Config*         config;
+    DiagnosticList* out;
+    sz              suppressed;
+    List{String}    reported; // see "Target resolution and scoping" below
 }
 ```
 
-`registry.c3` holds a static `Check[]`. The engine takes the max tier over
-*enabled* checks and builds only those layers — a run with only T1 checks never
-pays for scopes or the project table.
+`registry.c3` holds a static `Check[]`. `engine.c3`'s `run_checks` takes the
+max tier over *enabled* checks and lazily builds `scopes`/`flow` the first
+time some enabled check needs `LOCAL` or above — a run with only T1 checks
+never pays for either. `Scopes` (`scope.c3`) is a per-`FN_DECL` map of every
+parameter/local to its *declared* type (`NONE` for `var x = ...`, and for a
+name declared more than once in one function — no inference, no guessing
+which declaration a shadowed use site means). `Flow` (`flow.c3`) is
+deliberately not a control-flow graph: the one question Phase 3 needs answered
+is "is this name read anywhere in this subtree," which `flow.c3`'s `is_read`
+answers directly against the `Ast`, so `Flow` itself carries no state.
 
 Report helper, so no check formats its own location:
 

@@ -10,6 +10,7 @@ import c3::parser;
 import c3::lexer;
 import std::collections::list;
 import std::io;
+import std::core::mem::alloc;
 
 <*
  How much analysis a check needs. The engine builds only the layers that
@@ -157,9 +158,19 @@ fn Tier max_tier(Check[] enabled)
  Run `enabled` over one unit.
 
  Parse failures are reported first, then checks run on whatever did parse.
+ Builds `u.scopes`/`u.flow` once, lazily, the first time some enabled check
+ needs `Tier.LOCAL` or above -- a run with only SYNTAX checks never pays for
+ either, and a unit already carrying them (e.g. a second `run_checks` call
+ against the same `Unit`) is not rebuilt.
 *>
 fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 {
+	if (max_tier(enabled) >= Tier.LOCAL && !u.scopes)
+	{
+		Allocator a = ctx.out.allocator;
+		u.scopes = alloc::new(a, Scopes, build_scopes(u.ast(), u.toks(), a));
+		u.flow = alloc::new(a, Flow, build_flow(u.ast(), u.toks(), a));
+	}
 	foreach (c : enabled)
 	{
 		if (c.skip_on_error && u.has_errors()) continue;
