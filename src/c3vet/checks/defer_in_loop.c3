@@ -1,17 +1,17 @@
 <*
  `defer-in-loop`: a `defer` statement lexically inside a loop body.
 
- NOTE for whoever reviews this check's FP count: the lane brief and
- docs/CHECKS.md:115 both describe this check's premise as "`defer` runs at
- *function* exit, not per iteration" -- that is factually wrong for C3.
- Verified directly against the compiler (see this lane's commit message):
- `defer` is scope-scoped, not function-scoped, and fires once at the end of
- *each* iteration for FOR/FOREACH/WHILE/DO alike. The doc string and report
- message below have deliberately been written to not repeat that claim --
- they flag the construct without asserting a false semantics. Purely
- structural otherwise: a hand-rolled recursive walk with a loop-depth
- counter, since `parser::walk`'s visitor has no "leaving this node" hook to
- decrement on.
+ Reframed at Phase 3 integration. The original premise ("defer runs at
+ function exit, not per iteration") is backwards for C3 -- `defer` is
+ scope-scoped, not function-scoped, and fires at the end of *each*
+ iteration for FOR/FOREACH/WHILE/DO alike (verified with c3_run; see commit
+ history). The actually-useful fact is the opposite one: a reader coming
+ from a language where `defer` *is* function-scoped (Go, most notably) may
+ expect a loop-body `defer` to run once at the end, when it in fact runs
+ every iteration. This check exists to surface that construct for a
+ second look, not to claim either behavior is wrong. Purely structural:
+ a hand-rolled recursive walk with a loop-depth counter, since
+ `parser::walk`'s visitor has no "leaving this node" hook to decrement on.
 *>
 module c3vet;
 
@@ -19,7 +19,7 @@ import c3::parser;
 
 const Check DEFER_IN_LOOP = {
 	.name          = "defer-in-loop",
-	.doc           = "a defer statement lexically inside a loop body",
+	.doc           = "a defer statement lexically inside a loop body runs every iteration, not once",
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -52,7 +52,7 @@ fn void walk_defer(Ast* ast, NodeId id, int depth, DeferInLoopWalker* w) @local
 	Node* n = ast.node(id);
 	if (n.kind == NodeKind.DEFER && depth > 0)
 	{
-		w.ctx.report(w.unit, id, "defer-in-loop", "defer statement is lexically inside a loop body");
+		w.ctx.report(w.unit, id, "defer-in-loop", "defer inside a loop body runs every iteration, not once at the end");
 	}
 
 	int child_depth = depth;

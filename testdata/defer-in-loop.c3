@@ -8,23 +8,23 @@ fn void f()
 
 	for (int i = 0; i < 10; i++)
 	{
-		defer catch_me();           // want "defer statement is lexically inside a loop body"
+		defer catch_me();           // want "defer inside a loop body runs every iteration, not once at the end"
 	}
 
 	while (true)
 	{
-		defer catch_me();           // want "defer statement is lexically inside a loop body"
+		defer catch_me();           // want "defer inside a loop body runs every iteration, not once at the end"
 		break;
 	}
 
 	do
 	{
-		defer catch_me();           // want "defer statement is lexically inside a loop body"
+		defer catch_me();           // want "defer inside a loop body runs every iteration, not once at the end"
 	} while (false);
 
 	foreach (x : arr)
 	{
-		defer catch_me();           // want "defer statement is lexically inside a loop body"
+		defer catch_me();           // want "defer inside a loop body runs every iteration, not once at the end"
 	}
 
 	defer catch_me();

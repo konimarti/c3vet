@@ -100,7 +100,7 @@ patch proposal needs.
 
 | Check | Fires on | Status | Triage |
 |---|---|---|---|
-| `float-equal` | `==`/`!=` where either side is a float literal or a variable declared `float`/`double`/`float16`/`bfloat`/`float128` | confirmed | **both** — c3c has real types and would be more precise; too opinionated to be on by default there |
+| `float-equal` | `==`/`!=` where either side is a float literal or a variable declared `float`/`double`/`float16`/`bfloat`/`float128`. Measured 191 FP over the corpus, dominated by legitimate sentinel comparisons (`x == 0.0`, `x == double::inf`) and NaN self-checks (`x != x`) — the latter already caught by `self-compare`, so enabling both double-reports that idiom. Opt-in, not a reason to narrow the check | confirmed | **both** — c3c has real types and would be more precise; too opinionated to be on by default there |
 | `cond-not-bool` | `if (n)`/`while (n)` where `n` is declared integer or pointer. C3 permits it deliberately, so a compiler warning would be wrong | confirmed | vet |
 | `const-cond` | `if (1 == 2)`, `while (false)` — literal-only condition | confirmed | vet — `if (false)` is a legitimate dead-code toggle |
 | `empty-body` | `if (c) {}` / `while (c) {}`, empty block, no comment inside | confirmed | vet |
@@ -112,7 +112,7 @@ patch proposal needs.
 | Check | Fires on | Status | Triage |
 |---|---|---|---|
 | `loop-no-advance` | `for (i = 0; i < n;)` with an empty increment slot and no identifier from the condition assigned, `++`/`--`, or address-taken in the body | confirmed | vet |
-| `defer-in-loop` | `defer` in a loop body — runs at *function* exit, not per iteration. A genuine and common misreading | confirmed | vet |
+| `defer-in-loop` | `defer` in a loop body — runs every iteration (C3's `defer` is scope-scoped, not function-scoped like Go's). Flagged so a reader expecting function-scoped semantics gets a second look, not because either behavior is wrong. **Corrected at Phase 3 integration**: this row previously claimed the opposite ("runs at function exit, not per iteration"), which is factually wrong for C3 — caught by lane 3D via `c3_run` | confirmed | vet |
 | `empty-loop-body` | a loop whose body is empty and whose condition has no side effects | confirmed | vet, opt-in |
 
 `loop-no-advance` carries the most FP risk here (the counter may advance through
