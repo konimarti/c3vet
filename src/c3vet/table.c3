@@ -478,6 +478,12 @@ fn String find_stdlib_root(Allocator a)
 			String candidate = string::tformat("%s/c3c", dir);
 			if (path::exists(path::tnew(candidate) ?? (Path){}) && !file::is_dir(candidate))
 			{
+				// Official release tarballs ship "lib/std" next to the
+				// binary; some distro packages put it at "../lib/c3/std"
+				// instead. Try both.
+				String sibling_std = string::format(a, "%s/lib/std", dir);
+				if (path::exists(path::tnew(sibling_std) ?? (Path){})) return sibling_std;
+
 				String std = string::format(a, "%s/../lib/c3/std", dir);
 				if (path::exists(path::tnew(std) ?? (Path){})) return std;
 				return "";
