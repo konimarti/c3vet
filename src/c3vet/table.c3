@@ -1,20 +1,303 @@
 <*
  Project-wide declaration table.
 
- PHASE 4 (lane 4A). Declared here in Phase 0 so that `Ctx` can be frozen with
- its final shape and PROJECT-tier checks compile against it from the start.
+ Indexes the WIDER scope -- project sources plus lib/*.c3l dependencies plus
+ the standard library, declarations only, function bodies skipped -- and
+ answers questions about declarations: "does io::printfn carry @format(n)?",
+ "what does std::math export?". `Ctx.report` enforces the narrower reported
+ scope, so a stale or stdlib-only entry here can never surface as a
+ diagnostic -- see docs/DESIGN.md section 5.
 
- When implemented it indexes the WIDER scope -- project sources plus
- lib/*.c3l dependencies plus the standard library, declarations only, function
- bodies skipped -- and answers questions about declarations: "does io::printfn
- carry @format?", "what does std::math export?". Diagnostics stay restricted
- to the narrower reported scope, which `Ctx.report` enforces.
- See docs/DESIGN.md section 5.
+ Only `missing-format-attr` needs the standard library indexed. The other T3
+ consumers (`unused-import`, `unused-private-decl`) only need project-local
+ declarations, so a run where the standard library cannot be located still
+ produces a correct (if more conservative) table -- see `find_stdlib_root`.
+
+ Indexing reuses `c3::parser`, same as a reported-scope file, rather than a
+ second hand-rolled scanner. The real standard library uses some syntax this
+ parser does not yet cover (confirmed empirically: `lib/std/io/io.c3` hits an
+ unparsed construct partway through and recovers via error nodes), so a file
+ like that is only indexed up to its first unparsed declaration. This can
+ never cause a false positive -- a missing entry just means less is known,
+ which is exactly the conservative degradation `unused-import`/
+ `missing-format-attr` are specified to prefer (`docs/CHECKS.md`).
 *>
 module c3vet;
 
+import c3::parser;
+import c3::lexer;
+import std::collections::list;
+import std::core::dstring;
+import std::core::string;
+import std::io;
+import std::io::path;
+import std::os::env;
+
+enum DeclVis : char
+{
+	PUBLIC,
+	PRIVATE,
+	LOCAL,
+}
+
+<* One indexed declaration: its module, name, kind and visibility. *>
+struct DeclInfo
+{
+	String   mod;
+	String   name;
+	NodeKind kind;
+	DeclVis  vis;
+	<* 0-based parameter index from `@format(n)`; -1 when absent. *>
+	int      format_param;
+}
+
 struct DeclTable
 {
-	<* Placeholder: Phase 4 fills this in. *>
-	bool built;
+	List{DeclInfo} decls;
+}
+
+fn void DeclTable.init(&self, Allocator a)
+{
+	self.decls.init(a);
+}
+
+<* First declaration named `name`. `mod`, if non-empty, restricts the search to that module. *>
+fn DeclInfo* DeclTable.find(&self, String mod, String name)
+{
+	foreach (&d : self.decls)
+	{
+		if (d.name != name) continue;
+		if (mod.len && d.mod != mod) continue;
+		return d;
+	}
+	return null;
+}
+
+<* The `@format(n)` parameter index of any public declaration named `name`; -1 if none carries one. *>
+fn int DeclTable.format_param_of(&self, String name)
+{
+	foreach (&d : self.decls)
+	{
+		if (d.vis == DeclVis.PUBLIC && d.name == name && d.format_param >= 0) return d.format_param;
+	}
+	return -1;
+}
+
+<*
+ Names of every PUBLIC declaration in `mod_prefix` or one of its submodules
+ (`std::net` matches `std::net::tcp`, per C3's own import semantics).
+*>
+fn String[] DeclTable.exported_names(&self, Allocator a, String mod_prefix)
+{
+	List{String} out;
+	out.init(a);
+	foreach (&d : self.decls)
+	{
+		if (d.vis != DeclVis.PUBLIC) continue;
+		if (!module_matches(d.mod, mod_prefix)) continue;
+		out.push(d.name);
+	}
+	return out.array_view();
+}
+
+<* Every declaration in exactly `mod` (any visibility), for `unused-private-decl` to scan. *>
+fn DeclInfo[] DeclTable.decls_in(&self, Allocator a, String mod)
+{
+	List{DeclInfo} out;
+	out.init(a);
+	foreach (&d : self.decls)
+	{
+		if (d.mod == mod) out.push(*d);
+	}
+	return out.array_view();
+}
+
+fn bool module_matches(String mod, String prefix) @local
+{
+	if (mod == prefix) return true;
+	return mod.len > prefix.len + 2
+		&& mod[:prefix.len] == prefix
+		&& mod[prefix.len..prefix.len + 1] == "::";
+}
+
+<*
+ Build the table from a set of roots (files or directories; directories are
+ walked recursively, unlike the reported-scope walk in `cli::collect`, this
+ one does not skip `lib`). Every declaration name and module path is copied
+ into `a`, so the table outlives the per-file transient parse that produced
+ it.
+*>
+fn void build_table(DeclTable* t, String[] roots, Allocator a)
+{
+	t.init(a);
+	List{String} files;
+	files.tinit();
+	foreach (r : roots) collect_indexed(&files, r);
+	foreach (f : files) index_file(t, f, a);
+}
+
+fn bool collect_indexed(List{String}* out, String target) @local
+{
+	Path? p = path::tnew(target);
+	if (catch p) return false;
+	if (!path::exists(p)) return false;
+	if (!file::is_dir(target))
+	{
+		if (is_indexable(target)) out.push(target);
+		return true;
+	}
+	return walk_dir_indexed(out, target);
+}
+
+fn bool walk_dir_indexed(List{String}* out, String dir) @local
+{
+	Path? p = path::tnew(dir);
+	if (catch p) return false;
+	PathList? entries = path::ls(tmem, p);
+	if (catch entries) return false;
+
+	foreach (e : entries)
+	{
+		String name = e.basename();
+		if (name == "." || name == "..") continue;
+		String full = string::tformat("%s/%s", dir, name);
+		if (file::is_dir(full))
+		{
+			if (name.starts_with(".") || name == "build" || name == "out") continue;
+			walk_dir_indexed(out, full);
+			continue;
+		}
+		if (is_indexable(name)) out.push(full);
+	}
+	return true;
+}
+
+fn bool is_indexable(String p) @local => p.ends_with(".c3") || p.ends_with(".c3i");
+
+<*
+ Index one file: parse it transiently, walk its top-level declarations
+ tracking the current module (a file may switch module mid-file), copy the
+ small bits of metadata that need to outlive the parse into `a`.
+*>
+fn void index_file(DeclTable* t, String path_, Allocator a) @local
+{
+	@pool()
+	{
+		char[]? bytes = file::load(tmem, path_);
+		if (catch bytes) return;
+		ParseResult r = parser::parse(tmem, (String)bytes);
+		index_top_level(t, &r.ast, &r.toks, r.ast.root, a);
+	};
+}
+
+fn void index_top_level(DeclTable* t, Ast* ast, TokenList* toks, NodeId root, Allocator a) @local
+{
+	if (root == parser::NONE) return;
+	String cur_mod = "";
+	foreach (c : ast.children(root))
+	{
+		Node* n = ast.node(c);
+		if (n.kind == NodeKind.MODULE)
+		{
+			NodeId[] mkids = ast.children(c);
+			if (mkids.len && mkids[0] != parser::NONE)
+			{
+				cur_mod = path_text(toks, ast.node(mkids[0]), a);
+			}
+			continue;
+		}
+		if (n.kind == NodeKind.IMPORT || n.kind == NodeKind.ERROR_DECL) continue;
+		if (!n.kind.is_decl()) continue;
+		index_decl(t, ast, toks, c, cur_mod, a);
+	}
+}
+
+fn void index_decl(DeclTable* t, Ast* ast, TokenList* toks, NodeId id, String mod, Allocator a) @local
+{
+	Node* n = ast.node(id);
+	String name = toks.text_at(n.tok);
+	if (!name.len || name[0] == '@') return;
+
+	NodeId attr_scope = id;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.ATTRMACRO_DECL)
+	{
+		attr_scope = n.lhs;
+	}
+
+	DeclVis vis = DeclVis.PUBLIC;
+	int format_param = -1;
+	if (attr_scope != parser::NONE && ast.kind(attr_scope).is_list_bearing())
+	{
+		foreach (c : ast.children(attr_scope))
+		{
+			if (c == parser::NONE || ast.kind(c) != NodeKind.ATTR) continue;
+			String attr_name = toks.text_at(ast.node(c).tok);
+			if (attr_name == "@private") { vis = DeclVis.PRIVATE; }
+			else if (attr_name == "@local") { vis = DeclVis.LOCAL; }
+			else if (attr_name == "@format")
+			{
+				NodeId[] akids = ast.children(c);
+				if (akids.len >= 2 && akids[1] != parser::NONE && ast.kind(akids[1]) == NodeKind.INT_LIT)
+				{
+					format_param = string::to_integer{int}(toks.text_at(ast.node(akids[1]).tok)) ?? -1;
+				}
+			}
+		}
+	}
+
+	t.decls.push({
+		.mod          = mod.len ? mod.copy(a) : "",
+		.name         = name.copy(a),
+		.kind         = n.kind,
+		.vis          = vis,
+		.format_param = format_param,
+	});
+}
+
+<* The full dotted text of a `::`-separated path node (`foo::bar::baz`), reconstructed token by token. *>
+fn String path_text(TokenList* toks, Node* n, Allocator a) @local
+{
+	if (n.first_tok == n.last_tok) return toks.text_at(n.tok).copy(a);
+	DString s;
+	s.init(a);
+	for (uint i = n.first_tok; i <= n.last_tok; i++) s.append(toks.text_at(i));
+	return s.str_view();
+}
+
+<*
+ Locate the standard library's source root.
+
+ `C3VET_STDLIB`, if set, wins outright. Otherwise derive it from the `c3c`
+ binary found on `PATH`: `<dir>/../lib/c3/std` is where the official
+ installer puts it alongside the compiler. Returns `""` rather than erroring
+ when neither resolves -- `missing-format-attr` degrades to project-only
+ knowledge rather than failing the run, see the module doc comment above.
+*>
+fn String find_stdlib_root(Allocator a)
+{
+	String? override = env::get_var(a, "C3VET_STDLIB");
+	if (try override && override.len) return override;
+
+	String? path_env = env::get_var(tmem, "PATH");
+	if (catch path_env) return "";
+
+	usz from = 0;
+	while (from < path_env.len)
+	{
+		usz end = from;
+		while (end < path_env.len && path_env[end] != ':') end++;
+		String dir = path_env[from..end - 1];
+		if (dir.len)
+		{
+			String candidate = string::tformat("%s/c3c", dir);
+			if (path::exists(path::tnew(candidate) ?? (Path){}) && !file::is_dir(candidate))
+			{
+				String std = string::format(a, "%s/../lib/c3/std", dir);
+				if (path::exists(path::tnew(std) ?? (Path){})) return std;
+				return "";
+			}
+		}
+		from = end + 1;
+	}
+	return "";
 }
