@@ -7,4 +7,5 @@ fn void main()
 {
 	(void)maybe(); // want "void cast discards an Optional result"
 	(void)ordinary();
+	(void)testdata_silenced_fault::maybe(); // want "void cast discards an Optional result"
 }
