@@ -1,6 +1,7 @@
 module c3vet::missing_format_attr_test;
 
 import c3vet;
+import c3vet::testdata;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
@@ -85,13 +86,13 @@ fn void test_missing_format_attr() @test
 
 fn sz measure_corpus_with_table(DeclTable* table) @local
 {
-	String base = conformance::checkout_dir();
+	String base = testdata::checkout_dir();
 	if (!path::exists(path::tnew(base) ?? (Path){})) return 0;
 
 	String lib_dir = string::tformat("%s/lib", base);
 	String unit_dir = string::tformat("%s/test/unit", base);
-	String[] files = conformance::find_c3_files(lib_dir);
-	String[] unit_files = conformance::find_c3_files(unit_dir);
+	String[] files = testdata::find_c3_files(lib_dir);
+	String[] unit_files = testdata::find_c3_files(unit_dir);
 
 	Check[1] one = { c3vet::MISSING_FORMAT_ATTR };
 	sz total = 0;

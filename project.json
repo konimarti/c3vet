@@ -5,13 +5,13 @@
   "warnings": [ "no-unused" ],
   // Directories where C3 library files may be found.
   "dependency-search-paths": [ "lib" ],
-  // Libraries to use for all targets.
-  "dependencies": [ "lexer" ],
+  // Libraries to use for all targets. "parser" is the standalone parser,
+  // carved out into its own repository and vendored as a git submodule at
+  // lib/parser.c3l -- see docs/DESIGN.md section 1.5.
+  "dependencies": [ "lexer", "parser" ],
   "authors": [ "Koni Marti <koni.marti@gmail.com>" ],
   "version": "0.1.0",
-  // The parser is a standalone carve-out unit: it may only depend on
-  // lexer.c3l. See docs/DESIGN.md section 1.5.
-  "sources": [ "src/parser/**", "src/c3vet/**" ],
+  "sources": [ "src/c3vet/**" ],
   // Testdata lives in testdata/ at the project root, NOT under test/:
   // those files are read by the harness, never compiled into the test
   // binary. c3c has no exclude glob, so separate directories is the way.
@@ -23,14 +23,6 @@
     "c3vet": {
       "type": "executable",
       "sources": [ "src/cli/**" ],
-    },
-    // Carve-out guard: builds src/parser/ ALONE. If this target stops
-    // building, a reverse dependency on c3vet has crept into the parser.
-    // See docs/DESIGN.md section 1.5 rule 5.
-    "parser": {
-      "type": "static-lib",
-      "sources": [ "src/parser/**" ],
-      "no-entry": true,
     },
   },
   "cpu": "generic",

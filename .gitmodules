@@ -1,0 +1,3 @@
+[submodule "lib/parser.c3l"]
+	path = lib/parser.c3l
+	url = https://github.com/konimarti/parser.c3l.git

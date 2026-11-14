@@ -1,5 +1,10 @@
 build/
 out/
 lib/*.c3l
+# lexer.c3l is fetched by `c3l sync` (zip, not committed); parser.c3l is a
+# git submodule (tracked source).
+!lib/parser.c3l
 tags
 .claude/
+# Internal docs -- kept locally, not published.
+docs/

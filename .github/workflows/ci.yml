@@ -3,10 +3,11 @@ name: CI
 # Not pushed/enabled yet -- written as part of Phase 5 hardening, kept local
 # until someone decides to actually wire this repo up to GitHub Actions.
 #
-# Gates, in order: build, unit tests, the parser carve-out contract
-# (docs/DESIGN.md section 1.5), and -- only when a sibling c3c checkout is
-# available -- the conformance/resilience corpus and the differential
-# oracle against the real compiler (docs/ROADMAP.md section 6).
+# Gates, in order: build, unit tests, and -- only when a sibling c3c
+# checkout is available -- the differential oracle against the real
+# compiler (docs/ROADMAP.md section 6). The parser's own conformance and
+# resilience corpus gates live in its own repository now
+# (github.com/konimarti/parser.c3l, docs/DESIGN.md section 1.5), not here.
 
 on:
   push:
@@ -18,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install c3c
         run: |
@@ -36,14 +39,13 @@ jobs:
       - name: c3c test
         run: c3c test
 
-      - name: carve-out contract
-        run: scripts/check-carveout.sh
-
-  corpus-gates:
+  differential-oracle:
     runs-on: ubuntu-latest
     needs: build-and-test
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install c3c
         run: |
@@ -61,11 +63,6 @@ jobs:
 
       - name: c3c build
         run: c3c build
-
-      - name: Phase 1 gate -- parser conformance + resilience corpus
-        env:
-          C3C_CHECKOUT: ${{ github.workspace }}/c3c-checkout
-        run: c3c test
 
       - name: Differential oracle -- zero overlap with the real compiler
         env:

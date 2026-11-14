@@ -208,7 +208,7 @@ fn sz measure_fp_check(Check check)
  parser.c3l's conformance test -- that library is a separate repository
  now (docs/DESIGN.md section 1.5), and this harness must not depend on it.
 *>
-fn String checkout_dir() @local
+fn String checkout_dir()
 {
 	String? v = env::tget_var("C3C_CHECKOUT");
 	if (try v) return v;
@@ -216,7 +216,7 @@ fn String checkout_dir() @local
 }
 
 <* Every *.c3 and *.c3i file under `dir`, recursively. Result in temp memory. *>
-fn String[] find_c3_files(String dir) @local
+fn String[] find_c3_files(String dir)
 {
 	List{String} out;
 	out.tinit();
