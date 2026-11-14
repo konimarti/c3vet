@@ -71,7 +71,7 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id, List{String}* t
 		if (val != parser::NONE && is_temp_val(ast, w.unit.toks(), val, temp_locals))
 		{
 			w.ctx.report(w.unit, id, "temp-escapes-fn",
-				"temp-allocated memory returned from a function");
+				"temp-allocated memory returned from a function -- allocate with a non-temp allocator if the value must outlive this call");
 		}
 		return;
 	}

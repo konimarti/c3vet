@@ -38,7 +38,8 @@ fn bool visit_self_assign(Ast* ast, NodeId id, any ctx) @local
 	if (n.kind == NodeKind.ASSIGN && w.unit.toks().type_at(n.tok) == EQ
 		&& c3vet::same_expr(ast, w.unit.toks(), n.lhs, n.rhs))
 	{
-		w.ctx.report(w.unit, id, "self-assign", "self-assignment: this assigns the same value to itself");
+		w.ctx.report(w.unit, id, "self-assign",
+			"self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant");
 	}
 	return true;
 }

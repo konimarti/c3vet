@@ -42,7 +42,8 @@ fn bool visit_unused_try_binding(Ast* ast, NodeId id, any context) @local
 	String name = w.unit.toks().text_at(ast.node(binding).tok);
 	if (!c3vet::is_read(ast, w.unit.toks(), kids[1], name))
 	{
-		w.ctx.report(w.unit, id, UNUSED_TRY_BINDING.name, "try binding '%s' is never read in this branch", name);
+		w.ctx.report(w.unit, id, UNUSED_TRY_BINDING.name,
+			"try binding '%s' is never read in this branch -- use the binding, or drop it if the value isn't needed", name);
 	}
 	return true;
 }

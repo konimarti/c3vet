@@ -49,7 +49,8 @@ fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 		{
 			if (same_shape(w.unit.ast(), w.unit.toks(), earlier, condition))
 			{
-				w.ctx.report(w.unit, branch, DUP_BRANCH.name, "duplicate condition in if/else-if chain");
+				w.ctx.report(w.unit, branch, DUP_BRANCH.name,
+					"duplicate condition in if/else-if chain -- this branch is unreachable; remove it, or use a switch if comparing one value against several cases");
 				break;
 			}
 		}
@@ -59,7 +60,8 @@ fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 			{
 				if (same_shape(w.unit.ast(), w.unit.toks(), earlier, body))
 				{
-					w.ctx.report(w.unit, branch, DUP_BRANCH.name, "duplicate block body in if/else-if chain");
+					w.ctx.report(w.unit, branch, DUP_BRANCH.name,
+						"duplicate block body in if/else-if chain -- merge the conditions with ||, or use a switch if comparing one value against several cases");
 					break;
 				}
 			}
@@ -80,7 +82,8 @@ fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 			{
 				if (same_shape(w.unit.ast(), w.unit.toks(), earlier, otherwise))
 				{
-					w.ctx.report(w.unit, otherwise, DUP_BRANCH.name, "duplicate block body in if/else-if chain");
+					w.ctx.report(w.unit, otherwise, DUP_BRANCH.name,
+						"duplicate block body in if/else-if chain -- merge the conditions with ||, or use a switch if comparing one value against several cases");
 					break;
 				}
 			}

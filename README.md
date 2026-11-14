@@ -54,9 +54,9 @@ fn void bad_assign(int a)
 
 ```
 $ c3vet --enable=temp-escapes-fn demo.c3
-demo.c3:7:2: temp-allocated memory returned from a function [temp-escapes-fn]
-demo.c3:12:2: fault is swallowed by an empty catch branch [swallowed-fault]
-demo.c3:19:2: self-assignment: this assigns the same value to itself [self-assign]
+demo.c3:7:2: temp-allocated memory returned from a function -- allocate with a non-temp allocator if the value must outlive this call [temp-escapes-fn]
+demo.c3:12:2: fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore [swallowed-fault]
+demo.c3:19:2: self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant [self-assign]
 c3vet: 3 finding(s) in 1 file(s)
 ```
 

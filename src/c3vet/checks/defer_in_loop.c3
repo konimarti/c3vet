@@ -52,7 +52,8 @@ fn void walk_defer(Ast* ast, NodeId id, int depth, DeferInLoopWalker* w) @local
 	Node* n = ast.node(id);
 	if (n.kind == NodeKind.DEFER && depth > 0)
 	{
-		w.ctx.report(w.unit, id, "defer-in-loop", "defer inside a loop body runs every iteration, not once at the end");
+		w.ctx.report(w.unit, id, "defer-in-loop",
+			"defer inside a loop body runs every iteration, not once at the end -- move it outside the loop if that's not what you want");
 	}
 
 	int child_depth = depth;

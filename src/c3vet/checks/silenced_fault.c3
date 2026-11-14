@@ -32,7 +32,8 @@ fn bool visit_silenced_fault(Ast* ast, NodeId id, any context) @local
 	String callee = call_name(ast, w.unit.toks(), kids[0]);
 	if (callee.len && same_file_optional_function(ast, w.unit.toks(), w.unit.root(), callee))
 	{
-		w.ctx.report(w.unit, id, SILENCED_FAULT.name, "void cast discards an Optional result from '%s'", callee);
+		w.ctx.report(w.unit, id, SILENCED_FAULT.name,
+			"void cast discards an Optional result from '%s' -- handle the fault explicitly, or add a comment explaining why it's safe to discard", callee);
 	}
 	return true;
 }

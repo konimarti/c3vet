@@ -89,7 +89,7 @@ fn void find_float_divisions(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWa
 	{
 		w.reported.push(id);
 		w.ctx.report(w.unit, id, CONST_INT_DIV_TO_FLOAT.name,
-			"integer division of literals is converted to a floating value");
+			"integer division of literals is converted to a floating value -- make one literal a float (e.g. 1.0 / 2) to get the division you probably meant");
 	}
 	if (n.kind.is_list_bearing())
 	{

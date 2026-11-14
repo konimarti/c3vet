@@ -44,7 +44,7 @@ fn bool visit_temp_to_global(Ast* ast, NodeId id, any ctx) @local
 			if (is_temp_origin_init(ast, w.unit.toks(), kids[1]))
 			{
 				w.ctx.report(w.unit, id, "temp-to-global",
-					"temp-allocated memory assigned to a global or thread-local variable");
+					"temp-allocated memory assigned to a global or thread-local variable -- allocate with a non-temp allocator; temp memory is reclaimed long before a global's lifetime ends");
 			}
 		}
 		return true;
@@ -77,7 +77,7 @@ fn bool visit_temp_to_global(Ast* ast, NodeId id, any ctx) @local
 				if (vn.rhs != parser::NONE && (is_temp_origin_init(ast, w.unit.toks(), vn.rhs) || is_temp_val_to_global(ast, w.unit.toks(), vn.rhs, &temp_locals)))
 				{
 					w.ctx.report(w.unit, d.decl, "temp-to-global",
-						"temp-allocated memory assigned to a global or thread-local variable");
+						"temp-allocated memory assigned to a global or thread-local variable -- allocate with a non-temp allocator; temp memory is reclaimed long before a global's lifetime ends");
 				}
 			}
 		}
@@ -109,7 +109,7 @@ fn void check_assignments_in_body(TempToGlobalWalker* w, NodeId id, List{String}
 			if (is_target_global_or_tlocal(ast, w.unit.toks(), lhs, local_names, tlocal_or_static_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-to-global",
-					"temp-allocated memory assigned to a global or thread-local variable");
+					"temp-allocated memory assigned to a global or thread-local variable -- allocate with a non-temp allocator; temp memory is reclaimed long before a global's lifetime ends");
 			}
 		}
 	}

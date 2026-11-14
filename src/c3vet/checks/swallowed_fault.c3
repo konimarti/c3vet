@@ -30,7 +30,7 @@ fn bool visit_swallowed_fault(Ast* ast, NodeId id, any context) @local
 	if (operand != parser::NONE && ast.kind(operand) == NodeKind.ASSIGN) return true;
 	if (is_empty_commentless_catch_block(ast, w.unit.toks(), kids[1]))
 	{
-		w.ctx.report(w.unit, id, SWALLOWED_FAULT.name, "fault is swallowed by an empty catch branch");
+		w.ctx.report(w.unit, id, SWALLOWED_FAULT.name, "fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore");
 	}
 	return true;
 }

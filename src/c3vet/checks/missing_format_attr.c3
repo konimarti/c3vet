@@ -111,8 +111,8 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 						if (call_forwards_varargs(ast, w.unit.toks(), kids[1..], varargs_name))
 						{
 							w.ctx.report(w.unit, fn_node, "missing-format-attr",
-								"forwards its format string to '%s' (which has @format(%d)) but has no @format itself",
-								callee_name, fmt_idx);
+								"forwards its format string to '%s' (which has @format(%d)) but has no @format itself -- add @format(%d) to this function too, so c3c checks its call sites as well",
+								callee_name, fmt_idx, fmt_idx);
 							*reported = true;
 							return;
 						}

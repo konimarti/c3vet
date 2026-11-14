@@ -48,7 +48,8 @@ fn bool visit_contract_void_return(Ast* ast, NodeId id, any context) @local
 
 	if (contract_has_return(toks.all[(sz)ct].text))
 	{
-		w.ctx.report(w.unit, id, "contract-void-return", "@return is documented on a function that returns void");
+		w.ctx.report(w.unit, id, "contract-void-return",
+			"@return is documented on a function that returns void -- remove the @return doc, or make the function return a value");
 	}
 	return true;
 }

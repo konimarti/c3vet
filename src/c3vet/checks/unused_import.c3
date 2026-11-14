@@ -42,7 +42,7 @@ fn bool visit_unused_import(Ast* ast, NodeId id, any context) @local
 		// With no usable table entries we cannot prove this import unused.
 		if (!known_exports) continue;
 		if (file_uses_import(ast, w.unit.toks(), mod, imported_as, names)) continue;
-		w.ctx.report(w.unit, id, UNUSED_IMPORT.name, "import '%s' is unused", mod);
+		w.ctx.report(w.unit, id, UNUSED_IMPORT.name, "import '%s' is unused -- remove the import", mod);
 	}
 	return true;
 }

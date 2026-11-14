@@ -46,7 +46,8 @@ fn void run_unused_private_decl(Ctx* ctx, Unit* u)
 		if (!used)
 		{
 			w.ctx.report(w.unit, id, UNUSED_PRIVATE_DECL.name,
-				"@%s declaration '%s' is never referenced", vis == DeclVis.LOCAL ? "local" : "private", name);
+				"@%s declaration '%s' is never referenced -- remove it, or make it accessible if other code should use it",
+				vis == DeclVis.LOCAL ? "local" : "private", name);
 		}
 	}
 }

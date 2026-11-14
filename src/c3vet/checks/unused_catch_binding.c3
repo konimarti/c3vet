@@ -42,7 +42,8 @@ fn bool visit_unused_catch_binding(Ast* ast, NodeId id, any context) @local
 	String name = w.unit.toks().text_at(ast.node(binding).tok);
 	if (!c3vet::is_read(ast, w.unit.toks(), kids[1], name))
 	{
-		w.ctx.report(w.unit, id, UNUSED_CATCH_BINDING.name, "catch binding '%s' is never read in this branch", name);
+		w.ctx.report(w.unit, id, UNUSED_CATCH_BINDING.name,
+			"catch binding '%s' is never read in this branch -- use the binding, or drop it with a bare catch", name);
 	}
 	return true;
 }

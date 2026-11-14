@@ -46,7 +46,8 @@ fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 	}
 	if (condition != parser::NONE && is_literal_condition(ast, w.unit.toks(), condition))
 	{
-		w.ctx.report(w.unit, id, CONST_COND.name, "condition is determined by literals alone");
+		w.ctx.report(w.unit, id, CONST_COND.name,
+			"condition is determined by literals alone -- if this is a deliberate toggle, use $if for a compile-time condition instead");
 	}
 	return true;
 }

@@ -61,7 +61,8 @@ fn bool visit_loop_no_advance(Ast* ast, NodeId id, any ctx) @local
 	String[] name_arr = names.to_tarray();
 	if (!body_advances(ast, toks, body, name_arr))
 	{
-		w.ctx.report(w.unit, id, "loop-no-advance", "loop condition never advances in the body");
+		w.ctx.report(w.unit, id, "loop-no-advance",
+			"loop condition never advances in the body -- update the loop variable, or it loops forever");
 	}
 	return true;
 }

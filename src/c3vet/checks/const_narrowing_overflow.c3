@@ -48,7 +48,7 @@ fn bool visit_narrowing(Ast* ast, NodeId id, any context) @local
 	if (overflow || value > max_value)
 	{
 		w.ctx.report(w.unit, id, CONST_NARROWING_OVERFLOW.name,
-			"integer literal %s is out of range for cast target '%s'",
+			"integer literal %s is out of range for cast target '%s' -- use a type wide enough to hold the value, or shrink the literal",
 			w.unit.toks().text_at(ast.node(cast.rhs).tok), type_name);
 	}
 	return true;

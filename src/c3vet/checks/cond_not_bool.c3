@@ -70,12 +70,14 @@ fn void check_condition(Ast* ast, CondNotBoolWalker* w, NodeId cond) @local
 
 	if (ast.kind(type) == NodeKind.TYPE_PTR)
 	{
-		w.ctx.report(w.unit, cond, "cond-not-bool", "condition '%s' is a pointer, not a boolean expression", name);
+		w.ctx.report(w.unit, cond, "cond-not-bool",
+			"condition '%s' is a pointer, not a boolean expression -- compare it explicitly against null instead", name);
 	}
 	else if (is_integer_type(ast, toks, type))
 	{
 		w.ctx.report(w.unit, cond, "cond-not-bool",
-			"condition '%s' is a declared '%s', not a boolean expression", name, toks.text_at(ast.node(type).tok));
+			"condition '%s' is a declared '%s', not a boolean expression -- compare it explicitly against zero instead",
+			name, toks.text_at(ast.node(type).tok));
 	}
 }
 

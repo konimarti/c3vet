@@ -55,7 +55,8 @@ fn bool visit_self_compare(Ast* ast, NodeId id, any ctx) @local
 	if (n.kind == NodeKind.BINARY && is_compare_op(w.unit.toks().type_at(n.tok))
 		&& c3vet::same_expr(ast, w.unit.toks(), n.lhs, n.rhs))
 	{
-		w.ctx.report(w.unit, id, "self-compare", "self-comparison: both sides are identical");
+		w.ctx.report(w.unit, id, "self-compare",
+			"self-comparison: both sides are identical -- remove it, or use math::is_nan() if this is a NaN check");
 	}
 	return true;
 }

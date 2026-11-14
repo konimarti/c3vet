@@ -145,7 +145,7 @@ fn void check_pool_assignments(TempEscapesPoolWalker* w, NodeId id, uint b_first
 			if (target_is_outer(ast, toks, target, b_first, b_last, locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-pool",
-					"temp-allocated memory inside @pool assigned to variable declared outside pool");
+					"temp-allocated memory inside @pool assigned to variable declared outside pool -- allocate outside the pool, or copy the value out with a durable allocator before the pool ends");
 			}
 		}
 	}

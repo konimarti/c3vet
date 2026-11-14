@@ -63,7 +63,8 @@ fn void scan_body(Ast* ast, FloatEqualWalker* w, NodeId fn_decl, NodeId id) @loc
 		{
 			if (is_float_operand(ast, w, fn_decl, n.lhs) || is_float_operand(ast, w, fn_decl, n.rhs))
 			{
-				w.ctx.report(w.unit, id, "float-equal", "== or != compares floating-point values");
+				w.ctx.report(w.unit, id, "float-equal",
+					"== or != compares floating-point values -- compare with a tolerance instead of exact equality");
 			}
 		}
 	}

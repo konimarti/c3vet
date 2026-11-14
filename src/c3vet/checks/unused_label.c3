@@ -64,7 +64,7 @@ fn bool visit_unused_label(Ast* ast, NodeId id, any ctx) @local
 		foreach (t : targets) if (t == l.name) { used = true; break; }
 		if (!used)
 		{
-			w.ctx.report(w.unit, l.node, "unused-label", "label '%s' is never used", l.name);
+			w.ctx.report(w.unit, l.node, "unused-label", "label '%s' is never used -- remove the label", l.name);
 		}
 	}
 	return false;

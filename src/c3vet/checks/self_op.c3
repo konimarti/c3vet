@@ -55,7 +55,8 @@ fn bool visit_self_op(Ast* ast, NodeId id, any ctx) @local
 	if (n.kind == NodeKind.BINARY && is_self_op_operator(w.unit.toks().type_at(n.tok))
 		&& c3vet::same_expr(ast, w.unit.toks(), n.lhs, n.rhs))
 	{
-		w.ctx.report(w.unit, id, "self-op", "self-operation: both operands are identical");
+		w.ctx.report(w.unit, id, "self-op",
+			"self-operation: both operands are identical -- likely a typo for a different operand");
 	}
 	return true;
 }

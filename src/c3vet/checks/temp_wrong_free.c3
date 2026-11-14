@@ -76,7 +76,7 @@ fn void check_frees_in_body(TempWrongFreeWalker* w, NodeId id, List{String}* tem
 				if (is_temp_origin_init(ast, w.unit.toks(), arg) || is_temp_val_wrong_free(ast, w.unit.toks(), arg, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-wrong-free",
-						"free called on temp-allocated memory");
+						"free called on temp-allocated memory -- remove the free; temp-allocated memory is reclaimed automatically, not with mem::free");
 				}
 			}
 		}

@@ -52,7 +52,8 @@ fn void scan_force_unwrap_body(Ast* ast, TokenList* toks, NodeId id, bool allowe
 	}
 	if (!allowed && n.kind == NodeKind.FORCE_UNWRAP && toks.type_at(n.tok) == BANGBANG)
 	{
-		w.ctx.report(w.unit, id, FORCE_UNWRAP.name, "force unwrap may panic outside tests and main");
+		w.ctx.report(w.unit, id, FORCE_UNWRAP.name,
+			"force unwrap may panic outside tests and main -- handle the Optional with ?? for a default, or propagate it with the caller's own !");
 	}
 	if (n.kind.is_list_bearing())
 	{

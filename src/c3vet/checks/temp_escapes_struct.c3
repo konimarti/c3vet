@@ -81,7 +81,7 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 			if (ast.kind(peeled_lit) == NodeKind.INIT_LIST && init_list_has_temp(ast, toks, peeled_lit, temp_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-struct",
-					"temp-allocated memory stored into struct field and returned");
+					"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
 			}
 
 			// Return of local variable:
@@ -124,7 +124,7 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 			if (ast.kind(init_lit) == NodeKind.INIT_LIST && init_list_has_temp(ast, toks, init_lit, temp_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-struct",
-					"temp-allocated memory stored into struct field and returned");
+					"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
 			}
 		}
 	}
@@ -143,7 +143,7 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 				if (is_in_list(obj_name, returned_vars) && struct_val_is_temp(ast, toks, val, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-escapes-struct",
-						"temp-allocated memory stored into struct field and returned");
+						"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
 				}
 			}
 		}
@@ -157,7 +157,7 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 				if (ast.kind(init_lit) == NodeKind.INIT_LIST && init_list_has_temp(ast, toks, init_lit, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-escapes-struct",
-						"temp-allocated memory stored into struct field and returned");
+						"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
 				}
 			}
 		}
