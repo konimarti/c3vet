@@ -1,0 +1,73 @@
+name: CI
+
+# Not pushed/enabled yet -- written as part of Phase 5 hardening, kept local
+# until someone decides to actually wire this repo up to GitHub Actions.
+#
+# Gates, in order: build, unit tests, the parser carve-out contract
+# (docs/DESIGN.md section 1.5), and -- only when a sibling c3c checkout is
+# available -- the conformance/resilience corpus and the differential
+# oracle against the real compiler (docs/ROADMAP.md section 6).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install c3c
+        run: |
+          # Pulls the latest Linux release of the c3c compiler. The asset
+          # name has changed before between c3c releases; adjust the
+          # download URL here if this step starts failing.
+          curl -fsSL -o c3c.tar.gz \
+            "https://github.com/c3lang/c3c/releases/latest/download/c3-linux.tar.gz"
+          mkdir -p "$HOME/.local"
+          tar -xzf c3c.tar.gz -C "$HOME/.local"
+          echo "$HOME/.local/c3/bin" >> "$GITHUB_PATH"
+
+      - name: c3c build
+        run: c3c build
+
+      - name: c3c test
+        run: c3c test
+
+      - name: carve-out contract
+        run: scripts/check-carveout.sh
+
+  corpus-gates:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install c3c
+        run: |
+          curl -fsSL -o c3c.tar.gz \
+            "https://github.com/c3lang/c3c/releases/latest/download/c3-linux.tar.gz"
+          mkdir -p "$HOME/.local"
+          tar -xzf c3c.tar.gz -C "$HOME/.local"
+          echo "$HOME/.local/c3/bin" >> "$GITHUB_PATH"
+
+      - name: Check out the c3c compiler source (the conformance corpus)
+        uses: actions/checkout@v4
+        with:
+          repository: c3lang/c3c
+          path: c3c-checkout
+
+      - name: c3c build
+        run: c3c build
+
+      - name: Phase 1 gate -- parser conformance + resilience corpus
+        env:
+          C3C_CHECKOUT: ${{ github.workspace }}/c3c-checkout
+        run: c3c test
+
+      - name: Differential oracle -- zero overlap with the real compiler
+        env:
+          C3C_CHECKOUT: ${{ github.workspace }}/c3c-checkout
+        run: scripts/differential-oracle.sh
