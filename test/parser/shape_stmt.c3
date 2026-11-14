@@ -1,6 +1,7 @@
 module c3::parser::shape_stmt @test;
 
 import c3::parser;
+import c3::parser::invariants;
 
 fn void if_and_while_shapes()
 {
@@ -34,7 +35,7 @@ fn void for_and_foreach_shapes()
 
 fn void switch_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { switch (x) { case 1: y; default: z; } }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { switch (x) @jump { case 1: y; default: z; } }");
 	defer r.free();
 	bool switch_seen = false; bool case_seen = false; bool default_seen = false;
 	for (NodeId i = 1; i < r.ast.len(); i++)
@@ -44,6 +45,7 @@ fn void switch_shapes()
 		if (r.ast.kind(i) == DEFAULT) { default_seen = true; assert(r.ast.node(i).lhs != parser::NONE, "default carries its body"); }
 	}
 	assert(switch_seen && case_seen && default_seen, "switch arms are represented");
+	assert(!r.has_errors(), "switch attributes between subject and body parse cleanly");
 }
 
 fn void defer_and_assert_shapes()
@@ -57,7 +59,7 @@ fn void defer_and_assert_shapes()
 
 fn void declarations_and_return_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; const int LIMIT = 3; static int cached; return count; }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; const int LIMIT = 3; static int cached; custom::Type pathValue; int::max; return count; }");
 	defer r.free();
 	bool vars = false; bool returned = false;
 	for (NodeId i = 1; i < r.ast.len(); i++) { if (r.ast.kind(i) == VAR_DECL) vars = true; if (r.ast.kind(i) == RETURN) returned = true; }
@@ -76,20 +78,30 @@ fn void label_and_jump_shapes()
 
 fn void compile_time_if_and_for_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { $if true: x; $else y; $endif $for i = 0; i < 2; i++: x; $endfor }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { $if true: x; $else y; $endif $for var $i = 0; $i < 2; $i++: x; $endfor $for int $j = 0; $j < 2; $j++: x; $endfor }");
 	defer r.free();
 	bool if_seen = false; bool for_seen = false;
 	for (NodeId i = 1; i < r.ast.len(); i++) { if (r.ast.kind(i) == CT_IF) if_seen = true; if (r.ast.kind(i) == CT_FOR) for_seen = true; }
 	assert(if_seen && for_seen, "compile-time if and for are structural nodes");
+	assert(!r.has_errors(), "compile-time var and typed for clauses parse cleanly");
 }
 
 fn void compile_time_switch_and_foreach_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { $switch T: $case T: x; $default: y; $endswitch $foreach $I: items: x; $endforeach }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { $switch T: $case 1..5: x; $default: y; $endswitch $foreach $item: items: x; $endforeach }");
 	defer r.free();
 	bool switch_seen = false; bool foreach_seen = false;
 	for (NodeId i = 1; i < r.ast.len(); i++) { if (r.ast.kind(i) == CT_SWITCH) switch_seen = true; if (r.ast.kind(i) == CT_FOREACH) foreach_seen = true; }
 	assert(switch_seen && foreach_seen, "compile-time switch and foreach are structural nodes");
+	assert(!r.has_errors(), "compile-time range arms parse cleanly: %s", r.errors.len() ? r.errors[0].msg : "none");
+}
+
+fn void empty_compile_time_branch_keeps_spans_nested()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { $if true: $else $endif }");
+	defer r.free();
+	Report rep = invariants::check(&r);
+	assert(rep.spans_nest, "empty compile-time branch block remains within its parent span: %s", rep.detail);
 }
 
 fn void compile_time_line_and_type_forms()
