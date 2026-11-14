@@ -24,6 +24,11 @@ fn int main(String[] argv)
 	cfg.init(mem);
 	defer cfg.free();
 
+	// Resolution order: each check's default_on, then the config file,
+	// then the command line (config.c3's own documented order) -- so this
+	// must run before parse_args, which lets a CLI flag override it.
+	c3vet::load_config_file(&cfg, ".");
+
 	Options o = parse_args(mem, argv[1..], &cfg);
 	defer o.free();
 

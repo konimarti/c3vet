@@ -48,8 +48,8 @@ fn Options parse_args(Allocator a, String[] argv, Config* cfg)
 		if (arg == "-V" || arg == "--version") { o.version = true; continue; }
 		if (arg == "--list-checks") { o.list_checks = true; continue; }
 		if (arg == "--no-suppress") { o.no_suppress = true; cfg.no_suppress = true; continue; }
-		if (arg.starts_with("--enable=")) { add_names(&cfg.enabled, arg["--enable=".len..]); continue; }
-		if (arg.starts_with("--disable=")) { add_names(&cfg.disabled, arg["--disable=".len..]); continue; }
+		if (arg.starts_with("--enable=")) { add_names(&cfg.enabled, &cfg.disabled, arg["--enable=".len..]); continue; }
+		if (arg.starts_with("--disable=")) { add_names(&cfg.disabled, &cfg.enabled, arg["--disable=".len..]); continue; }
 		if (arg.starts_with("-"))
 		{
 			o.bad = true;
@@ -62,7 +62,11 @@ fn Options parse_args(Allocator a, String[] argv, Config* cfg)
 }
 
 <* Split a comma-separated list onto `out`, ignoring empty entries. *>
-fn void add_names(List{String}* out, String csv) @local
+fn void add_names(List{String}* out, List{String}* opposite, String csv) @local
 {
-	foreach (name : c3vet::split_names(tmem, csv)) out.push(name.copy(out.allocator));
+	foreach (name : c3vet::split_names(tmem, csv))
+	{
+		opposite.remove_item(name);
+		out.push(name.copy(out.allocator));
+	}
 }
