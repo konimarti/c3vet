@@ -52,24 +52,6 @@ fn void content_invariant_passes_on_fully_parsed_input()
 		"a fully parsed file must satisfy invariant 3: %s", rep.detail);
 }
 
-<*
- Invariant 3 must FAIL on a parser that skips content.
-
- The other half of the pair. The Phase 0 parse_fn stub walks over a function
- signature without building nodes for it, so `f` belongs to nothing. When
- lane 1C lands a real signature parser this flips: delete the test and let
- the conformance gate carry it.
-*>
-fn void content_invariant_catches_a_skipped_signature()
-{
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { }");
-	defer r.free();
-	Report rep = invariants::check(&r);
-	assert(!rep.content_represented,
-		"the stub skips 'void f' -- invariant 3 must notice, or it has no teeth");
-	assert(rep.unrepresented > 0, "and must count what it skipped");
-}
-
 fn void malformed_input_still_returns_a_tree()
 {
 	ParseResult r = parser::parse(mem, "module demo; fn void f() { @@@ ; }");
