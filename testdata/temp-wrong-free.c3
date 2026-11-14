@@ -36,4 +36,10 @@ fn void good_null_free()
 	mem::free(null);
 }
 
+fn void good_unrelated_module_free()
+{
+	int* p = mem::talloc(int);
+	allocator::free(p);
+}
+
 fn void* make_buf(Allocator a) => mem::alloc(int, a);

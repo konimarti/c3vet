@@ -104,14 +104,12 @@ fn bool is_free_callee(Ast* ast, TokenList* toks, NodeId callee) @local
 	}
 	if (k == NodeKind.PATH)
 	{
-		if (toks.text_at(ast.node(callee).last_tok) != "free") return false;
-		NodeId[] pkids = ast.children(callee);
-		if (pkids.len == 2)
-		{
-			String modname = toks.text_at(ast.node(pkids[0]).tok);
-			return modname == "mem";
-		}
-		return true;
+		// PATH is a leaf, not list-bearing (its .tok anchors only the first
+		// segment) -- ast.children() always returns empty here. "mem::free"
+		// is exactly three tokens: mem, ::, free.
+		Node* pn = ast.node(callee);
+		if (toks.text_at(pn.last_tok) != "free") return false;
+		return pn.last_tok - pn.first_tok == 2 && toks.text_at(pn.first_tok) == "mem";
 	}
 	return false;
 }
