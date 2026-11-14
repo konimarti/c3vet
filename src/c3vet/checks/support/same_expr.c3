@@ -12,6 +12,14 @@
  plain deref is treated as potentially-volatile and excluded, conservatively,
  rather than risk a false positive). So `same_expr` refuses to compare at all
  when either side contains any of those four shapes anywhere in its subtree.
+
+ That guard only makes sense for expression-identity checks ("this one read
+ is guaranteed to equal that one read"). `dup-branch` is a different
+ question -- "was this code copy-pasted?" -- where a call or assignment
+ inside an otherwise-identical branch body is not a reason to stay quiet;
+ only one branch of an if/else-if chain ever runs, so there is no "two reads"
+ to worry about. `same_shape` is exported separately for that case: the same
+ recursive structural comparison, without the side-effect veto.
 *>
 module c3vet;
 
@@ -31,8 +39,13 @@ fn bool same_expr(Ast* ast, TokenList* toks, NodeId a, NodeId b)
 	return same_shape(ast, toks, a, b);
 }
 
-<* The recursive structural comparison, once the side-effect guard has passed. *>
-fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b) @local
+<*
+ Recursive structural comparison: equal kind and token text at every node,
+ with no side-effect guard. Used directly by `same_expr` (after its guard
+ passes) and by `dup-branch` (which does not want the guard at all -- see
+ the module doc comment above).
+*>
+fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b)
 {
 	if (a == parser::NONE || b == parser::NONE) return a == b;
 	Node* na = ast.node(a);

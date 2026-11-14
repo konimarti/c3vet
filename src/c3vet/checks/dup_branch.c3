@@ -45,7 +45,7 @@ fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 		NodeId body = kids[1];
 		foreach (earlier : conditions)
 		{
-			if (same_expr(w.unit.ast(), w.unit.toks(), earlier, condition))
+			if (same_shape(w.unit.ast(), w.unit.toks(), earlier, condition))
 			{
 				w.ctx.report(w.unit, branch, DUP_BRANCH.name, "duplicate condition in if/else-if chain");
 				break;
@@ -55,7 +55,7 @@ fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 		{
 			foreach (earlier : bodies)
 			{
-				if (same_expr(w.unit.ast(), w.unit.toks(), earlier, body))
+				if (same_shape(w.unit.ast(), w.unit.toks(), earlier, body))
 				{
 					w.ctx.report(w.unit, branch, DUP_BRANCH.name, "duplicate block body in if/else-if chain");
 					break;
@@ -76,7 +76,7 @@ fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 		{
 			foreach (earlier : bodies)
 			{
-				if (same_expr(w.unit.ast(), w.unit.toks(), earlier, otherwise))
+				if (same_shape(w.unit.ast(), w.unit.toks(), earlier, otherwise))
 				{
 					w.ctx.report(w.unit, otherwise, DUP_BRANCH.name, "duplicate block body in if/else-if chain");
 					break;
