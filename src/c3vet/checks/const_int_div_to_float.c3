@@ -74,6 +74,13 @@ fn void find_float_divisions(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWa
 		if (is_float_type(ast, toks, n.lhs)) find_float_divisions(ast, toks, n.rhs, w);
 		return;
 	}
+	if (n.kind == NodeKind.CALL)
+	{
+		// A call's callee and arguments each have their own, independent type
+		// context -- an int-typed argument is not "converted to float" just
+		// because the call result sits inside a float-destined expression.
+		return;
+	}
 	if (n.kind == NodeKind.BINARY && toks.type_at(n.tok) == DIV &&
 		ast.kind(n.lhs) == NodeKind.INT_LIT && ast.kind(n.rhs) == NodeKind.INT_LIT &&
 		!contains_node(&w.reported, id))
