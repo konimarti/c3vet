@@ -50,6 +50,12 @@ fn void bad_assign(int a)
 {
 	a = a;
 }
+
+fn void bad_dup_branch(int x)
+{
+	if (x == 1) {}
+	else if (x == 1) {}
+}
 ```
 
 ```
@@ -57,8 +63,12 @@ $ c3vet --enable=temp-escapes-fn demo.c3
 demo.c3:7:2: temp-allocated memory returned from a function -- allocate with a non-temp allocator if the value must outlive this call [temp-escapes-fn]
 demo.c3:12:2: fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore [swallowed-fault]
 demo.c3:19:2: self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant [self-assign]
-c3vet: 3 finding(s) in 1 file(s)
+demo.c3:25:7: duplicate condition in if/else-if chain -- this branch is unreachable; remove it, or use a switch if comparing one value against several cases [dup-branch]
+demo.c3:25:7: duplicate block body in if/else-if chain -- merge the conditions with ||, or use a switch if comparing one value against several cases [dup-branch]
+c3vet: 5 finding(s) in 1 file(s)
 ```
+
+Every finding ends with a concrete suggestion, not just a description of what's wrong.
 
 ## Build
 
