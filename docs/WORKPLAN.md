@@ -99,12 +99,23 @@ no other cross-lane entry point.
 invariants hold on those files, and **`c3c build parser` is green** — the
 carve-out must survive your lane.
 
-**Phase gate (all lanes):** the **642-file conformance corpus** — `c3c/lib`
-(366) + `c3c/test/unit` (276) — parses with **zero** `ERROR` nodes and all four
-invariants hold. Note invariant 3 is *content representation*, not raw token
-coverage — read `DESIGN.md` §6 before trying to satisfy it, and delete
+**Phase gate (all lanes):** `test/parser/conformance.c3` implements this gate
+already — run `c3c test --test-filter conformance`. The **642-file conformance
+corpus** (`c3c/lib` + `c3c/test/unit`) must parse with **zero** `ERROR` nodes
+and intact invariants; the **816-file resilience corpus** (`c3c/test/
+test_suite`) must not crash and must keep invariants 1/2 even though most of
+it is deliberately invalid by design — zero errors is never asserted there.
+Note invariant 3 is *content representation*, not raw token coverage — read
+`DESIGN.md` §6 before trying to satisfy it, and delete
 `content_invariant_catches_a_skipped_signature` in `parse_test.c3` once lane
-1C lands a real signature parser. The **816-file resilience corpus** (`c3c/test/test_suite`, of
+1C lands a real signature parser.
+
+A real bug already found this way, fixed in the shared `Parser.finish()`
+helper (not lane-owned — if you see it change, that's the orchestrator, pull
+it into your worktree): a node's span could end up narrower than its own
+child's on a path that records an error without consuming a token. Every
+`finish()` call now widens to cover its children automatically, so lanes
+don't need to think about this, but it's worth knowing it exists. The **816-file resilience corpus** (`c3c/test/test_suite`, of
 which 662 are deliberately invalid) must not crash, hang, or break an
 invariant — do **not** chase zero errors there, those files are supposed to be
 broken. Fix forward; a lane is not done while the conformance corpus is red in
