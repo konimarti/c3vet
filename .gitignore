@@ -2,3 +2,4 @@ build/
 out/
 lib/*.c3l
 tags
+.claude/

@@ -24,6 +24,7 @@
 module c3::parser::conformance;
 
 import c3::parser;
+import c3::lexer;
 import c3::parser::invariants;
 import std::io;
 import std::io::path;
@@ -197,3 +198,5 @@ fn void resilience_corpus_does_not_crash() @test
 		"%d file(s) violate span/edge invariants even though those invariants must hold on ANY input",
 		s.invariant_failures);
 }
+
+
