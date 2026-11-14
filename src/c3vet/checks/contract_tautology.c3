@@ -40,7 +40,7 @@ const Check CONTRACT_TAUTOLOGY = {
 	.name          = "contract-tautology",
 	.doc           = "a @require clause compares an expression to itself with ==",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_contract_tautology,
 };

@@ -8,7 +8,7 @@ const Check DUP_BRANCH = {
 	.name          = "dup-branch",
 	.doc           = "an if/else-if chain repeats an earlier condition or block",
 	.tier          = Tier.SYNTAX,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_dup_branch,
 };

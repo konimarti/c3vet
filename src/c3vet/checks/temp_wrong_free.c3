@@ -14,7 +14,7 @@ const Check TEMP_WRONG_FREE = {
 	.name          = "temp-wrong-free",
 	.doc           = "calling free on temp-allocated memory",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_temp_wrong_free,
 };

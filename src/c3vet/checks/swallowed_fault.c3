@@ -8,7 +8,7 @@ const Check SWALLOWED_FAULT = {
 	.name          = "swallowed-fault",
 	.doc           = "an empty catch branch silently discards a fault",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_swallowed_fault,
 };

@@ -14,7 +14,7 @@ const Check SELF_ASSIGN = {
 	.name          = "self-assign",
 	.doc           = "self-assignment: the right side is identical to the left",
 	.tier          = Tier.SYNTAX,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_self_assign,
 };

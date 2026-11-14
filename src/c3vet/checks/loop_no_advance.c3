@@ -23,7 +23,7 @@ const Check LOOP_NO_ADVANCE = {
 	.name          = "loop-no-advance",
 	.doc           = "A for loop with no increment clause whose condition variables never change in the body.",
 	.tier          = Tier.SYNTAX,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_loop_no_advance,
 };

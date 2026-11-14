@@ -15,7 +15,7 @@ const Check TEMP_TO_GLOBAL = {
 	.name          = "temp-to-global",
 	.doc           = "temp-allocated memory assigned to a global or thread-local variable",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_temp_to_global,
 };

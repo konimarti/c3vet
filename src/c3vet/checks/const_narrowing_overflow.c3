@@ -8,7 +8,7 @@ const Check CONST_NARROWING_OVERFLOW = {
 	.name          = "const-narrowing-overflow",
 	.doc           = "an integer literal is outside the range of its explicit cast type",
 	.tier          = Tier.SYNTAX,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_const_narrowing_overflow,
 };

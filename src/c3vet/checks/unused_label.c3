@@ -22,7 +22,7 @@ const Check UNUSED_LABEL = {
 	.name          = "unused-label",
 	.doc           = "A declared label never targeted by a break/continue in the same function.",
 	.tier          = Tier.SYNTAX,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_unused_label,
 };

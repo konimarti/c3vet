@@ -7,7 +7,7 @@ const Check UNUSED_TRY_BINDING = {
 	.name          = "unused-try-binding",
 	.doc           = "a try binding is never read in its branch",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_unused_try_binding,
 };

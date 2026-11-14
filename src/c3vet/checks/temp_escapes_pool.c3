@@ -16,7 +16,7 @@ const Check TEMP_ESCAPES_POOL = {
 	.name          = "temp-escapes-pool",
 	.doc           = "temp-allocated memory inside @pool assigned to variable declared outside pool",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_temp_escapes_pool,
 };

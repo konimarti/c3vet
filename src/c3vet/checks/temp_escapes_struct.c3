@@ -15,7 +15,7 @@ const Check TEMP_ESCAPES_STRUCT = {
 	.name          = "temp-escapes-struct",
 	.doc           = "temp-allocated memory stored into struct field and returned",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_temp_escapes_struct,
 };

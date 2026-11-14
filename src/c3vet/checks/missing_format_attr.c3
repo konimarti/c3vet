@@ -15,7 +15,7 @@ const Check MISSING_FORMAT_ATTR = {
 	.name          = "missing-format-attr",
 	.doc           = "function forwarding format string and varargs without @format attribute",
 	.tier          = Tier.PROJECT,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_missing_format_attr,
 };

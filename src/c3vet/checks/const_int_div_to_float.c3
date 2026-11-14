@@ -9,7 +9,7 @@ const Check CONST_INT_DIV_TO_FLOAT = {
 	.name          = "const-int-div-to-float",
 	.doc           = "integer division of literals is converted to a floating value",
 	.tier          = Tier.SYNTAX,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_const_int_div_to_float,
 };

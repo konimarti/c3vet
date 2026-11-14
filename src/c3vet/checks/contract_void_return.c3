@@ -15,7 +15,7 @@ const Check CONTRACT_VOID_RETURN = {
 	.name          = "contract-void-return",
 	.doc           = "an @return contract is documented on a function returning void",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.run           = &run_contract_void_return,
 };
