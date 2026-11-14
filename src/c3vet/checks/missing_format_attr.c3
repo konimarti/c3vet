@@ -101,7 +101,8 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 			String callee_name = call_name(ast, w.unit.toks(), kids[0]);
 			if (callee_name.len)
 			{
-				int fmt_idx = w.ctx.table.format_param_of(callee_name);
+				String callee_mod = call_qualifier(ast, w.unit.toks(), kids[0]);
+				int fmt_idx = w.ctx.table.format_param_of(callee_mod, callee_name);
 				if (fmt_idx >= 0 && (sz)(1 + fmt_idx) < kids.len)
 				{
 					NodeId fmt_arg = kids[1 + fmt_idx];
@@ -198,4 +199,21 @@ fn String call_name(Ast* ast, TokenList* toks, NodeId id) @local
 	if (n.kind == NodeKind.MEMBER_ACCESS) return call_name(ast, toks, n.rhs);
 	if (n.kind == NodeKind.PATH) return toks.text_at(n.last_tok);
 	return "";
+}
+
+<*
+ The module prefix of a qualified call (`mod::sub::name(...)` -> `mod::sub`),
+ or "" for an unqualified one. `PATH`'s own span is the whole dotted
+ sequence; the qualifier is everything before the final `::name`, i.e. every
+ token up to (not including) the last two.
+*>
+fn String call_qualifier(Ast* ast, TokenList* toks, NodeId id) @local
+{
+	if (id == parser::NONE) return "";
+	Node* n = ast.node(id);
+	if (n.kind != NodeKind.PATH || n.last_tok < n.first_tok + 2) return "";
+	DString s;
+	s.tinit();
+	for (uint i = n.first_tok; i <= n.last_tok - 2; i++) s.append(toks.text_at(i));
+	return s.str_view();
 }

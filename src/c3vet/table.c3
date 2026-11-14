@@ -73,14 +73,51 @@ fn DeclInfo* DeclTable.find(&self, String mod, String name)
 	return null;
 }
 
-<* The `@format(n)` parameter index of any public declaration named `name`; -1 if none carries one. *>
-fn int DeclTable.format_param_of(&self, String name)
+<*
+ The `@format(n)` parameter index of the public declaration named `name`
+ in module `mod`; -1 if none carries one.
+
+ `mod`, if non-empty, is the qualifier as written at the call site
+ (`io::printfn(...)` -> `"io"`) -- which C3 always spells as the LAST
+ segment of whatever module was imported, never the full path (confirmed
+ empirically: `import std::io;` makes `io::printfn` the call syntax, not
+ `std::io::printfn`). Matched against each declaration's own full module
+ path by its last segment, via `module_qualifier_matches`, not by exact
+ equality. `mod` empty means the call was unqualified, so the name must be
+ unambiguous across every indexed module to trust it: two unrelated public
+ functions sharing a name (`log`, `write`, `debug` are common across
+ libraries) previously matched whichever happened to come first in the
+ table, which could silently attribute the wrong function's `@format` to
+ an unrelated same-named callee. Either way, ambiguous is answered as "no
+ `@format` found" (-1), not a guess, same as everywhere else this tool
+ prefers a false negative over a false positive.
+*>
+fn int DeclTable.format_param_of(&self, String mod, String name)
 {
+	if (mod.len)
+	{
+		int result = -1;
+		bool found = false;
+		foreach (&d : self.decls)
+		{
+			if (d.vis != DeclVis.PUBLIC || d.name != name) continue;
+			if (!module_qualifier_matches(d.mod, mod)) continue;
+			if (found) return -1;
+			found = true;
+			result = d.format_param;
+		}
+		return result;
+	}
+	int result = -1;
+	bool found = false;
 	foreach (&d : self.decls)
 	{
-		if (d.vis == DeclVis.PUBLIC && d.name == name && d.format_param >= 0) return d.format_param;
+		if (d.vis != DeclVis.PUBLIC || d.name != name) continue;
+		if (found) return -1;
+		found = true;
+		result = d.format_param;
 	}
-	return -1;
+	return result;
 }
 
 <*
@@ -118,6 +155,15 @@ fn bool module_matches(String mod, String prefix) @local
 	return mod.len > prefix.len + 2
 		&& mod[:prefix.len] == prefix
 		&& mod[prefix.len..prefix.len + 1] == "::";
+}
+
+<* True when `qualifier` is `mod` itself, or `mod`'s last `::`-separated segment. *>
+fn bool module_qualifier_matches(String mod, String qualifier) @local
+{
+	if (mod == qualifier) return true;
+	if (!mod.ends_with(qualifier)) return false;
+	usz prefix_len = mod.len - qualifier.len;
+	return prefix_len >= 2 && mod[prefix_len - 1] == ':' && mod[prefix_len - 2] == ':';
 }
 
 <*
