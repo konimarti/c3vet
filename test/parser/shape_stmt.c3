@@ -22,6 +22,16 @@ fn void if_and_while_shapes()
 	assert(!r.has_errors(), "valid control flow parses cleanly");
 }
 
+fn void try_unwrap_declarations_and_compile_time_type_comparisons()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { if (try Object* global = maybe()) ; while (try String rv = next()) ; $if true: if ($Type != Other) ; $endif }");
+	defer r.free();
+	assert(!r.has_errors(), "typed try unwrap declarations and type comparisons parse in conditions: %s", r.errors.len() ? r.errors[0].msg : "none");
+	bool declared = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == VAR_DECL && r.ast.kind(r.ast.node(i).rhs) == TRY_EXPR) declared = true;
+	assert(declared, "try unwrap declaration is represented as a typed local with TRY_EXPR initializer");
+}
+
 fn void for_and_foreach_shapes()
 {
 	ParseResult r = parser::parse(mem, "module demo; fn void f() { for (i = 0; i < 3; i++) x; foreach (item : items) x; foreach_r (item : items) x; }");
@@ -60,9 +70,46 @@ fn void defer_and_assert_shapes()
 	assert(defer_seen && assert_seen, "defer and assert are represented");
 }
 
+fn void cast_expression_defer_is_not_catch()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { defer (void)process.destroy(); }");
+	defer r.free();
+	assert(!r.has_errors(), "parenthesized cast expression after defer parses cleanly");
+	bool defer_seen = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == DEFER) defer_seen = true;
+	assert(defer_seen, "cast expression is retained as defer body");
+}
+
+fn void expression_prefixes_are_accepted_in_statement_position()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { @pool() { x; }; }");
+	defer r.free();
+	assert(!r.has_errors(), "attribute expression prefixes are valid statement starts: %s", r.errors.len() ? r.errors[0].msg : "none");
+}
+
+fn void repeated_typed_for_initializers()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { for (sz i = size, sz k = size; k > 0; k = i) x; }");
+	defer r.free();
+	assert(!r.has_errors(), "each comma-separated for initializer may declare its own type");
+	bool for_seen = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == FOR) for_seen = true;
+	assert(for_seen, "for initializer list is retained in the for node");
+}
+
+fn void compile_time_switch_accepts_boolean_case_expression()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { $switch: $case $feat(LINUX) || $feat(BSD): x; $default: y; $endswitch $switch TypeElement::kind: $case STRUCT: x; $endswitch }");
+	defer r.free();
+	assert(!r.has_errors(), "compile-time switch accepts a full constant expression in a case arm");
+	bool switch_seen = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == CT_SWITCH) switch_seen = true;
+	assert(switch_seen, "compile-time switch is represented structurally");
+}
+
 fn void declarations_and_return_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; const int LIMIT = 3; static int cached; custom::Type pathValue; $Type* ptrValue = value; int::max; return count; }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; int $generated @noinit; String[1] $ext = { \"x\" }; const int LIMIT = 3; static int cached; custom::Type pathValue; $Type* ptrValue = value; int::max; return count; }");
 	defer r.free();
 	bool vars = false; bool returned = false;
 	for (NodeId i = 1; i < r.ast.len(); i++) { if (r.ast.kind(i) == VAR_DECL) vars = true; if (r.ast.kind(i) == RETURN) returned = true; }
