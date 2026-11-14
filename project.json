@@ -5,9 +5,9 @@
   "warnings": [ "no-unused" ],
   // Directories where C3 library files may be found.
   "dependency-search-paths": [ "lib" ],
-  // Libraries to use for all targets. "parser" is the standalone parser,
-  // carved out into its own repository and vendored as a git submodule at
-  // lib/parser.c3l -- see docs/DESIGN.md section 1.5.
+  // Libraries to use for all targets. Both are vendored as git submodules
+  // under lib/ (lib/lexer.c3l, lib/parser.c3l) rather than fetched by a
+  // package manager.
   "dependencies": [ "lexer", "parser" ],
   "authors": [ "Koni Marti <koni.marti@gmail.com>" ],
   "version": "0.1.0",

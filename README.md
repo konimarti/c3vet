@@ -63,7 +63,8 @@ c3vet: 3 finding(s) in 1 file(s)
 ## Build
 
 ```sh
-c3l sync          # fetch lexer.c3l
+git clone --recurse-submodules https://github.com/konimarti/c3vet.git
+cd c3vet
 c3c build         # -> build/c3vet
 c3c test
 ```
