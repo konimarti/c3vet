@@ -59,12 +59,22 @@ fn void defer_and_assert_shapes()
 
 fn void declarations_and_return_shapes()
 {
-	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; const int LIMIT = 3; static int cached; custom::Type pathValue; int::max; return count; }");
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { var item = value; int count = 1; const int LIMIT = 3; static int cached; custom::Type pathValue; $Type* ptrValue = value; int::max; return count; }");
 	defer r.free();
 	bool vars = false; bool returned = false;
 	for (NodeId i = 1; i < r.ast.len(); i++) { if (r.ast.kind(i) == VAR_DECL) vars = true; if (r.ast.kind(i) == RETURN) returned = true; }
 	assert(vars && returned, "local declarations and return are represented");
 	assert(!r.has_errors(), "valid declarations and return parse cleanly");
+}
+
+fn void compile_time_pointer_type_local_declaration()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { $Type* value = source; }");
+	defer r.free();
+	bool found = false;
+	for (NodeId i = 1; i < r.ast.len(); i++) if (r.ast.kind(i) == VAR_DECL) found = true;
+	assert(found, "$Type* name = expr is parsed as a local declaration");
+	assert(!r.has_errors(), "compile-time pointer type local parses cleanly");
 }
 
 fn void label_and_jump_shapes()
@@ -136,4 +146,22 @@ fn void unterminated_compile_time_region_recovers()
 	defer r.free();
 	assert(r.ast.root != parser::NONE, "unterminated region still yields a tree");
 	assert(r.has_errors(), "unterminated region reports a parse error");
+}
+
+fn void unterminated_compile_time_bodies_keep_eof_spans_valid()
+{
+	String[4] sources = {
+		"module demo; fn void f() { $for var $i = 0; $i < 2; $i++: if (true)",
+		"module demo; fn void f() { $if true: if (true)",
+		"module demo; fn void f() { $foreach $item: items: if (true)",
+		"module demo; fn void f() { $switch x: $case 1: if (true)",
+	};
+	foreach (src : sources)
+	{
+		ParseResult r = parser::parse(mem, src);
+		defer r.free();
+		assert(r.has_errors(), "missing terminators are reported");
+		Report rep = invariants::check(&r);
+		assert(rep.edges_valid && rep.spans_nest, "EOF recovery keeps statement spans valid: %s", rep.detail);
+	}
 }
