@@ -117,6 +117,21 @@ fn void declarations_and_return_shapes()
 	assert(!r.has_errors(), "valid declarations and return parse cleanly");
 }
 
+fn void qualified_generic_types_and_static_method_expressions()
+{
+	ParseResult r = parser::parse(mem, "module demo; fn void f() { ref::Ref{Pair} r = ref::wrap(p); mem::volatile::Volatile{int}* v = source; mem::alignment::UnalignedRef{int, 1} unaligned = source; CFType.release(node.mon.mode.src); }");
+	defer r.free();
+	assert(!r.has_errors(), "generic qualified local types and type static-method calls are disambiguated: %s", r.errors.len() ? r.errors[0].msg : "none");
+	bool ref_decl = false; bool volatile_ptr = false; bool static_call = false;
+	for (NodeId i = 1; i < r.ast.len(); i++)
+	{
+		if (r.ast.kind(i) == VAR_DECL && r.ast.kind(r.ast.node(i).lhs) == TYPE_GENERIC) ref_decl = true;
+		if (r.ast.kind(i) == VAR_DECL && r.ast.kind(r.ast.node(i).lhs) == TYPE_PTR) volatile_ptr = true;
+		if (r.ast.kind(i) == EXPR_STMT) static_call = true;
+	}
+	assert(ref_decl && volatile_ptr && static_call, "both declaration suffix shapes and the call expression are retained");
+}
+
 fn void compile_time_pointer_type_local_declaration()
 {
 	ParseResult r = parser::parse(mem, "module demo; fn void f() { $Type* value = source; }");
