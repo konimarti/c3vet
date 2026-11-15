@@ -1,31 +1,29 @@
 # c3vet
 
 A vet tool for [C3](https://c3-lang.org): reports **suspicious but legal**
-code — constructs that compile cleanly and are almost certainly not what the
+code, constructs that compile cleanly and are almost certainly not what the
 author meant.
 
 ## Why use it
 
-`c3c --validation=obnoxious` is already a capable compiler warning set.
-c3vet never repeats a warning the compiler already gives you — it only
-reports things the compiler has no way to see, chiefly two families
-specific to C3:
+c3vet only reports what `c3c --validation=obnoxious` can't see.
+It never repeats a compiler warning.
 
-- **Temp-memory discipline** — a `talloc` pointer returned from a function,
-  escaping a `@pool()` body, stored in a returned struct or a global, or
-  passed to `mem::free`. All of these compile cleanly. All of them are
-  use-after-free.
-- **Fault hygiene** — `if (catch f()) {}` with an empty body silently
-  swallows the fault. C3 forces you to *handle* an Optional; it never checks
-  that the handling actually does anything.
+What it catches:
 
-Plus copy-paste mistakes (`a = a`, `if (a == a)`), dead-giveaway dead code,
-and a handful of C3-specific traps like `defer` running every loop iteration
-instead of once.
+- **Temp memory misuse.** A `talloc` pointer that is returned, escapes a `@pool()` body, lands in a returned struct or a global, or goes to `mem::free`. All of these compile, and all of them are use after free.
+- **Swallowed faults.** `if (catch f()) {}` with an empty body drops the fault. C3 makes you handle an Optional but doesn't check that the handling does anything.
+- **Copy and paste slips** like `a = a`, `if (a == a)` or the same condition twice in an if/else-if chain.
+- **Dead code and stuck loops**, e.g. a loop that never advances, empty bodies, unused labels, imports and private declarations.
+- **Suspicious constants**, e.g. a literal that overflows its cast or integer division turned into a float.
+- **C3 specific traps**, e.g. a `defer` that runs on every loop iteration instead of once, or a contract that can never fail.
 
-It also has per-check granularity and per-line suppression comments, which
-the compiler has none of, so you can turn a check on project-wide and quiet
-it down case by case where it's wrong.
+And more: 29 checks in total, 15 of them on by default. `c3vet --list-checks` shows them all.
+
+What the compiler doesn't give you:
+
+- Every check can be turned on or off on its own.
+- Findings can be silenced per line with a comment.
 
 ## Example
 
@@ -68,7 +66,7 @@ demo.c3:25:7: duplicate block body in if/else-if chain -- merge the conditions w
 c3vet: 5 finding(s) in 1 file(s)
 ```
 
-Every finding ends with a concrete suggestion, not just a description of what's wrong.
+Each finding tells you how to fix it.
 
 ## Build
 
@@ -89,24 +87,30 @@ c3vet --enable=a,b --disable=c
 c3vet --no-suppress      # audit run: ignore every suppression comment
 ```
 
-Exit codes: `0` clean, `1` findings, `2` tool error. Findings go to stdout and
-tool errors to stderr, so `c3vet | wc -l` works in CI.
+- Exit codes: `0` clean, `1` findings, `2` tool error.
+- Findings go to stdout, errors to stderr, so `c3vet | wc -l` works in CI.
+- Some checks are off by default. A check only runs by default once it has proven quiet on real code.
+- `c3vet --list-checks` shows all checks and which ones need `--enable`.
+- The full manual is in `man ./c3vet.1`.
 
-To fix the same `--enable`/`--disable`/`--no-suppress` choices for a project
-instead of retyping them, drop them in a `.c3vet` file (or a `"c3vet"` key in
-`project.json`) at the project root:
+### Project config
+
+Put your usual `--enable`, `--disable` and `--no-suppress` choices in a `.c3vet` file at the project root:
 
 ```json
 {"disable": ["cond-not-bool"]}
 ```
 
-A command-line flag always wins over whatever the file says.
+Or under a `"c3vet"` key in `project.json`:
 
-See `man ./c3vet.1` for the full manual.
+```json
+{
+  "c3vet": {"disable": ["cond-not-bool"]}
+}
+```
 
-Not every check is on by default — a check only runs automatically once it
-has been proven not to cry wolf on real-world code. `c3vet --list-checks`
-always shows the current set and which ones need `--enable`.
+- If both exist, `.c3vet` wins.
+- Flags on the command line always win over either file.
 
 ### Suppression
 
@@ -117,9 +121,8 @@ a = a;                        // c3vet:ignore[self-assign]
 // c3vet:ignore-file[float-equal]
 ```
 
-A suppression counts when it sits anywhere inside the reported construct, or
-on the line just before it. Suppressed findings are always counted in the run
-summary — one you have forgotten about hides a real bug.
+- A comment works anywhere inside the reported construct or on the line before it.
+- The run summary always counts suppressed findings, so a forgotten one can't hide a real bug.
 
 ## License
 
