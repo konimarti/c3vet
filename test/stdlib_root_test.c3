@@ -55,5 +55,8 @@ fn void test_stdlib_path_separator() @test
 	assert(c3vet::find_stdlib_in_path(win, ";", bin, tmem) == want);
 	// With the wrong separator the whole string is one bogus entry.
 	assert(c3vet::find_stdlib_in_path(win, ":", bin, tmem) == "");
-	assert(c3vet::find_stdlib_in_path(string::tformat("/nonexistent:%s", real), ":", bin, tmem) == want);
+	// POSIX form; on Windows the drive letter in `real` contains ':' itself.
+	$if !env::WIN32:
+		assert(c3vet::find_stdlib_in_path(string::tformat("/nonexistent:%s", real), ":", bin, tmem) == want);
+	$endif
 }
