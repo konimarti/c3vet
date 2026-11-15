@@ -27,6 +27,7 @@ module c3vet;
 import c3::parser;
 import c3::lexer;
 import std::collections::list;
+import libc;
 import std::core::dstring;
 import std::core::string;
 import std::io;
@@ -453,10 +454,12 @@ fn String path_text(TokenList* toks, Node* n, Allocator a) @local
 <*
  Locate the standard library's source root.
 
- `C3VET_STDLIB`, if set, wins outright. Otherwise derive it from the `c3c`
- binary found on `PATH`: `<dir>/../lib/c3/std` is where the official
- installer puts it alongside the compiler. Returns `""` rather than erroring
- when neither resolves -- `missing-format-attr` degrades to project-only
+ `C3VET_STDLIB`, if set, wins outright. Otherwise walk `PATH` for `c3c`
+ (`c3c.exe` on Windows), resolve symlinks to the real binary, and look next
+ to it: `<dir>/lib/std` (official release tarballs) first, then
+ `<dir>/../lib/c3/std` (some distro packages). A `c3c` without a stdlib is
+ skipped and the search continues. Returns `""` rather than erroring when
+ nothing resolves -- `missing-format-attr` degrades to project-only
  knowledge rather than failing the run, see the module doc comment above.
 *>
 fn String find_stdlib_root(Allocator a)
@@ -467,29 +470,52 @@ fn String find_stdlib_root(Allocator a)
 	String? path_env = env::get_var(tmem, "PATH");
 	if (catch path_env) return "";
 
-	usz from = 0;
-	while (from < path_env.len)
-	{
-		usz end = from;
-		while (end < path_env.len && path_env[end] != ':') end++;
-		String dir = path_env[from..end - 1];
-		if (dir.len)
-		{
-			String candidate = string::tformat("%s/c3c", dir);
-			if (path::exists(path::tnew(candidate) ?? (Path){}) && !file::is_dir(candidate))
-			{
-				// Official release tarballs ship "lib/std" next to the
-				// binary; some distro packages put it at "../lib/c3/std"
-				// instead. Try both.
-				String sibling_std = string::format(a, "%s/lib/std", dir);
-				if (path::exists(path::tnew(sibling_std) ?? (Path){})) return sibling_std;
+	$if env::WIN32:
+		return find_stdlib_in_path(path_env, ";", "c3c.exe", a);
+	$else
+		return find_stdlib_in_path(path_env, ":", "c3c", a);
+	$endif
+}
 
-				String std = string::format(a, "%s/../lib/c3/std", dir);
-				if (path::exists(path::tnew(std) ?? (Path){})) return std;
-				return "";
-			}
-		}
-		from = end + 1;
+<* `find_stdlib_root` on an explicit `PATH` value, separator and binary name, so the Windows form can be tested anywhere. *>
+fn String find_stdlib_in_path(String path_env, String sep, String bin, Allocator a)
+{
+	foreach (dir : path_env.tsplit(sep))
+	{
+		if (!dir.len) continue;
+		String candidate = string::tformat("%s/%s", dir, bin);
+		if (!path::exists(path::tnew(candidate) ?? (Path){}) || file::is_dir(candidate)) continue;
+		String real_dir = dir_of(resolve_links(candidate));
+		String sibling_std = string::format(a, "%s/lib/std", real_dir);
+		if (path::exists(path::tnew(sibling_std) ?? (Path){})) return sibling_std;
+		String std = string::format(a, "%s/../lib/c3/std", real_dir);
+		if (path::exists(path::tnew(std) ?? (Path){})) return std;
 	}
 	return "";
+}
+
+<* The directory part of `p` ("." if it has no separator). *>
+fn String dir_of(String p) @local
+{
+	foreach_r (i, c : p)
+	{
+		if (c == '/' || c == '\\') return i ? p[:i] : "/";
+	}
+	return ".";
+}
+
+<* Follow symlinks until `p` is a regular file; relative targets are relative to the link's directory. Temp-allocated. *>
+fn String resolve_links(String p) @local
+{
+	$if !env::WIN32:
+		for (int hops = 0; hops < 40; hops++)
+		{
+			char[4096] buf;
+			sz n = libc::readlink(p.zstr_tcopy(), &buf, buf.len);
+			if (n <= 0 || n >= buf.len) break;
+			String target = (String)buf[:n];
+			p = target[0] == '/' ? target.tcopy() : string::tformat("%s/%s", dir_of(p), target);
+		}
+	$endif
+	return p;
 }
