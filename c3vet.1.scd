@@ -13,7 +13,7 @@ C3VET(1)
 *c3vet* reports code that compiles cleanly under *c3c* but is almost certainly
 not what the author meant. *c3c --validation=obnoxious* is already a capable
 compiler warning set; *c3vet* never repeats a diagnostic the compiler already
-gives (checked empirically by *scripts/differential-oracle.sh*) and instead
+gives (verified by *scripts/differential-oracle.sh*) and instead
 covers what the compiler has no way to see: temp-allocator discipline,
 Optional/fault hygiene, copy-paste mistakes, and a handful of C3-specific
 traps such as `defer` running every loop iteration instead of once.
@@ -29,9 +29,8 @@ own. Findings go to standard output; everything else (usage, errors, the run
 summary) goes to standard error, so `c3vet | wc -l` is meaningful in a script
 or a CI job.
 
-Not every check runs by default - see *--list-checks*. A check only ships on
-by default once it produces zero false positives over the project's own
-conformance corpus; the rest are opt-in, usually because they encode a
+Not every check runs by default - see *--list-checks*. A check is on
+by default only when it is expected to produce no false positives; the rest are opt-in, usually because they encode a
 project's own policy (`force-unwrap`, `silenced-fault`) rather than finding an
 outright bug.
 

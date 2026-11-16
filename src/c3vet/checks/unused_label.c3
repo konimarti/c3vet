@@ -2,15 +2,8 @@
  `unused-label`: a declared label (`FOO: while (...) { ... }`) never targeted
  by a `break`/`continue` naming it.
 
- Labels are function-scoped (grammar.y's `optional_label` only ever attaches
- to the statement it prefixes within one function body), so this scans each
- `FN_DECL`'s body in isolation rather than the whole file -- two functions
- that each declare their own `FOO:` label, one using it and one not, must
- not cross-contaminate. See `testdata/unused-label.c3` for exactly that case.
-
- Filed as `Tier.SYNTAX` per the Phase 2 lane instructions: once scoped
- correctly to one `FN_DECL` at a time, this needs nothing beyond the AST and
- token text, despite CHECKS.md's table placement in the project-tier family.
+ Labels are function-scoped: each function is checked on its own, so a label
+ used in one function does not count as used for a same-named label in another.
 *>
 module c3vet;
 
@@ -29,7 +22,6 @@ const Check UNUSED_LABEL = {
 	.make_state    = &make_unused_label_state,
 };
 
-<* Carries the engine's two pointers through `walk`'s `any` context. *>
 struct UnusedLabelWalker
 {
 	Ctx*  ctx;

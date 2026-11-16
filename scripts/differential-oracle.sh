@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# The differential oracle (docs/ROADMAP.md section 6, point 4).
+# The differential oracle.
 #
 # c3vet promises zero overlap with the real compiler: every check this tool
 # ships should be something c3c itself does not already catch. This script
 # checks that promise empirically instead of by inspection:
 #
-#   1. run c3vet, with every check enabled, over the 642-file conformance
-#      corpus, and record every (file, line, column) it reports a finding at.
+#   1. run c3vet, with every check enabled, over the c3c checkout's lib and
+#      test/unit sources, and record every (file, line, column) it reports a finding at.
 #   2. run the real c3c compiler over the same files with its strictest
 #      validation and warning flags, and record every (file, line, column) IT
 #      reports a diagnostic at.
@@ -14,8 +14,8 @@
 #      means a check is just re-detecting something the compiler already
 #      tells the user about.
 #
-# The corpus lives in a sibling checkout, found via C3C_CHECKOUT (same
-# convention as test/parser/conformance.c3), default /home/km/Documents/c3c.
+# The sources come from a c3c checkout, found via C3C_CHECKOUT (default
+# /home/km/Documents/c3c).
 #
 # usage: scripts/differential-oracle.sh
 set -uo pipefail

@@ -79,9 +79,9 @@ fn void test_missing_format_attr() @test
 		assert(w.matched, "line %d: wanted finding containing '%s', got none", w.ln, w.text);
 	}
 
-	// Measure over conformance corpus
+	// Measure over the c3c checkout
 	sz corpus_findings = measure_corpus_with_table(&table);
-	assert(corpus_findings == 0, "expected 0 findings over the conformance corpus");
+	assert(corpus_findings == 0, "expected 0 findings over the c3c checkout");
 }
 
 fn sz measure_corpus_with_table(DeclTable* table) @local

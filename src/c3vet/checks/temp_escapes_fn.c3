@@ -1,8 +1,8 @@
 <*
  `temp-escapes-fn`: a `talloc`/`tmem`-derived pointer or slice returned from a function.
 
- docs/CHECKS.md Family A. Returning memory allocated with the temporary allocator
- escapes the caller or local frame and is a use-after-free once the temp arena resets.
+ Returning memory allocated with the temporary allocator is a use-after-free
+ once the temp arena resets.
 *>
 module c3vet;
 
@@ -37,7 +37,6 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 	Node* n = ast.node(id);
 	if (n.kind != NodeKind.FN_DECL) return true;
 
-	// Collect names of all temp-origin locals in this function.
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
 	List{String} temp_locals;
 	temp_locals.tinit();
@@ -51,7 +50,6 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 		}
 	}
 
-	// Walk function body inspecting return statements.
 	check_returns_in_body(w, n.rhs, &temp_locals);
 	return true;
 }
@@ -62,7 +60,6 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id, List{String}* t
 	Ast* ast = w.unit.ast();
 	Node* n = ast.node(id);
 
-	// Do not descend into nested functions or lambdas.
 	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
 
 	if (n.kind == NodeKind.RETURN)
@@ -92,7 +89,6 @@ fn bool is_temp_val(Ast* ast, TokenList* toks, NodeId val, List{String}* temp_lo
 {
 	if (val == parser::NONE) return false;
 
-	// Peel casts, slices, and unary & / * operators.
 	NodeId cur = val;
 	while (cur != parser::NONE)
 	{

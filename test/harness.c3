@@ -19,11 +19,7 @@
      {                 // want "empty block"
      }
 
- This is deliberately stricter than suppression comments, which match
- anywhere inside the construct (see suppress.c3). A test should pin down
- exactly where a finding points; a user writing `// c3vet:ignore` should not
- have to care. Do not relax this to match the span -- it would stop the tests
- from catching a diagnostic that drifts onto the wrong line.
+ Suppression comments match anywhere inside the construct; `want` does not.
 
  `want` text is matched as a substring, not a regular expression, so no
  dependency is needed and messages stay greppable.
@@ -48,11 +44,10 @@ struct Want
 <*
  Run one check against one testdata file and assert an exact match.
 
- Looks `check_name` up in the registry (orchestrator-owned, `WORKPLAN.md`
- rule 3), so this only works once the check has landed in
- `c3vet::ALL_CHECKS`. A check mid-development should call `verify_check`
- below with its own `Check` literal instead -- same 1:1 `// want` match, no
- registry dependency.
+ Looks `check_name` up in `c3vet::ALL_CHECKS`, so the check must be
+ registered there. To test a check that is not registered, call
+ `verify_check` below with its own `Check` literal instead -- same 1:1
+ `// want` match, no registry dependency.
  @param check_name : "the check to enable; every other check stays off"
  @param path : "path to the testdata file, relative to the project root"
 *>
@@ -129,26 +124,16 @@ fn void collect_wants(List{Want}* out, TokenList* toks) @local
 
 <*
  Run `check_name`, with only it enabled, over every `*.c3`/`*.c3i` file in the
- same 642-file conformance corpus Phase 1 used (the sibling c3c checkout's
- `lib/` and `test/unit/`), and return the total finding count.
+ the sibling c3c checkout's `lib/` and `test/unit/`, and return the total
+ finding count. This is a false-positive measurement: call it from a `@test`
+ that asserts on the count you expect.
 
- This is the false-positive measurement every Phase 2 check's gate requires
- ("zero false positives over the 642-file conformance corpus") -- call it
- from a `@test` that asserts on the count you expect, so a regression is a
- normal test failure rather than something only visible in TEST LOG on
- failure (c3c's test runner only surfaces `io::printfn` output when the test
- itself fails).
+ Returns 0 immediately, without asserting, when `C3C_CHECKOUT` is not found,
+ so it is safe to call on a machine without the checkout.
 
- Returns 0 immediately, without asserting, when `C3C_CHECKOUT` is not found
- -- same policy as `conformance_corpus_is_clean`, so this is safe to call
- from a machine that does not have the sibling repo.
-
- Looks the check up in the registry, so it only works for a check already
- landed in `c3vet::ALL_CHECKS` (orchestrator-owned, `WORKPLAN.md` rule 3). A
- check mid-development, not yet registered, should call `measure_fp_check`
- below directly with its own `Check` literal instead -- same corpus sweep,
- no registry dependency, so a lane is never blocked measuring its own FP
- count before the orchestrator lands its entry.
+ Looks the check up in `c3vet::ALL_CHECKS`, so the check must be registered
+ there. For an unregistered check call `measure_fp_check` below directly with
+ its own `Check` literal.
 *>
 fn sz measure_fp(String check_name)
 {
@@ -204,9 +189,7 @@ fn sz measure_fp_check(Check check)
 
 <*
  The sibling c3c checkout used for the FP sweep above, found via
- C3C_CHECKOUT (default: /home/km/Documents/c3c). Own copy, not shared with
- parser.c3l's conformance test -- that library is a separate repository
- now (docs/DESIGN.md section 1.5), and this harness must not depend on it.
+ C3C_CHECKOUT (default: /home/km/Documents/c3c).
 *>
 fn String checkout_dir()
 {

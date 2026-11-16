@@ -7,7 +7,7 @@
 # marked GAP must produce no c3c diagnostic at any validation level; a case
 # marked COVERED must produce one.
 #
-# Run it before implementing a check (WORKPLAN rule 9) and in CI, so that
+# Run it before implementing a check and in CI, so that
 # c3c adopting a check upstream shows up as a failure here rather than as
 # silent duplication in c3vet.
 #
@@ -49,27 +49,27 @@ probe() {
 
 echo "c3c: $(c3c --version 2>&1 | head -1 | sed 's/.*Version: *//')"
 echo
-echo "Phase 2 (T1) checks -- every one must still be a GAP:"
+echo "Syntactic checks -- every one must still be a GAP:"
 
-# --- Family C: copy-paste and self-reference (lane 2A) ---
+# --- Family C: copy-paste and self-reference ---
 probe self_assign  GAP 'fn void f() { int a = 5; a = a; io::printn(a); }'
 probe self_compare GAP 'fn void f(int a) { if (a == a) io::printn("x"); }'
 probe self_op      GAP 'fn void f(int a) { int b = a - a; io::printn(b); }'
 probe dup_branch   GAP 'fn void f(int a) { if (a > 1) { io::printn("A"); } else if (a > 1) { io::printn("A"); } }'
 
-# --- Family D/E: conditions and loop intent (lanes 2B, 2C) ---
+# --- Family D/E: conditions and loop intent ---
 probe const_cond      GAP 'fn void f() { if (1 == 2) io::printn("x"); }'
 probe empty_body      GAP 'fn void f(int a) { if (a > 1) {} }'
 probe loop_no_advance GAP 'fn void f() { for (int i = 0; i < 3;) { io::printn("x"); } }'
 probe empty_loop_body GAP 'fn void f() { for (int i = 0; i < 3; i++) {} }'
 probe unused_label    GAP 'fn void f() { while FOO: (true) { io::printn("x"); break; } }'
 
-# --- Family H: constant arithmetic (lane 2B) ---
+# --- Family H: constant arithmetic ---
 probe const_int_div   GAP 'fn void f() { float g = 1 / 2; io::printfn("%f", g); }'
 probe const_narrowing GAP 'fn void f() { long big = 100000; char small = (char)big; io::printn(small); }'
 
 echo
-echo "Control group -- c3c must still cover these, or CHECKS.md is stale:"
+echo "Control group -- c3c must still cover these, or this list is stale:"
 probe c_shadow        COVERED 'fn void f() { int x = 1; { int x = 2; io::printn(x); } io::printn(x); }'
 probe c_printf_few    COVERED 'fn void f(int a) { io::printfn("%s %s", a); }'
 probe c_return_local  COVERED 'fn int* f() { int local = 7; return &local; }'
@@ -92,5 +92,5 @@ if [ "$fails" -eq 0 ]; then
 	echo "all $total probes as expected"
 	exit 0
 fi
-echo "$fails of $total probes disagree with docs/CHECKS.md -- update the catalog"
+echo "$fails of $total probes disagree with expectations -- update the probes"
 exit 1

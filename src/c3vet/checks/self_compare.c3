@@ -2,9 +2,8 @@
  `self-compare`: `a == a`, `a != a`, `a < a`, `a >= a` and the other four
  comparison operators.
 
- docs/CHECKS.md Family C. A BINARY node whose operator is a comparison and
- whose lhs and rhs are `same_expr` -- always true or always false, the
- comparison tells the reader nothing a literal `true`/`false` wouldn't.
+ Always true or always false. Operands with side effects (calls, `++`/`--`,
+ assignments, dereferences) are not flagged.
 *>
 module c3vet;
 

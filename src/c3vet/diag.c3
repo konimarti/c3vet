@@ -1,7 +1,5 @@
 <*
  Diagnostics and their rendering.
-
- FROZEN INTERFACE. See docs/DESIGN.md section 5.
 *>
 module c3vet;
 
@@ -19,8 +17,7 @@ struct Diagnostic
 	<* 1-based, from the lexer's own token positions. *>
 	sz     ln, col;
 	<*
-	 Token span, retained so a future --fix has an exact range to rewrite.
-	 Unused in v1. Indices into the unit's `TokenList.code`.
+	 Token span of the finding, as indices into the unit's `TokenList.code`.
 	*>
 	uint   first_tok, last_tok;
 	<* The check that reported this, as the user sees it. *>

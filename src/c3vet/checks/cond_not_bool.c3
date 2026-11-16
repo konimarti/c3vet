@@ -39,9 +39,6 @@ fn bool visit_cond_not_bool(Ast* ast, NodeId id, any context) @local
 		w.current_fn = id;
 		return true;
 	}
-	// Scopes never indexes a LAMBDA's own locals (see scope.c3's
-	// collect_locals), so a name inside one cannot be resolved against the
-	// enclosing function's scope without risking a shadowed-name mix-up.
 	if (n.kind == NodeKind.LAMBDA) return false;
 
 	NodeId cond = parser::NONE;

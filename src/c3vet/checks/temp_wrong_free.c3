@@ -1,8 +1,8 @@
 <*
  `temp-wrong-free`: `mem::free` or `free` called on a `talloc`-derived pointer.
 
- docs/CHECKS.md Family A. Freeing memory allocated by the temporary allocator
- with the heap/general free function is invalid and leads to undefined behavior.
+ Freeing temporary-allocator memory with the general `free` is invalid and
+ undefined behavior.
 *>
 module c3vet;
 
@@ -36,7 +36,6 @@ fn bool visit_temp_wrong_free(Ast* ast, NodeId id, any ctx) @local
 	Node* n = ast.node(id);
 	if (n.kind != NodeKind.FN_DECL) return true;
 
-	// Collect names of all temp-origin locals in this function.
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
 	List{String} temp_locals;
 	temp_locals.tinit();
@@ -50,7 +49,6 @@ fn bool visit_temp_wrong_free(Ast* ast, NodeId id, any ctx) @local
 		}
 	}
 
-	// Walk function body inspecting free calls.
 	check_frees_in_body(w, n.rhs, &temp_locals);
 	return true;
 }
@@ -61,7 +59,6 @@ fn void check_frees_in_body(TempWrongFreeWalker* w, NodeId id, List{String}* tem
 	Ast* ast = w.unit.ast();
 	Node* n = ast.node(id);
 
-	// Do not descend into nested functions or lambdas.
 	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
 
 	if (n.kind == NodeKind.CALL)
@@ -103,9 +100,6 @@ fn bool is_free_callee(Ast* ast, TokenList* toks, NodeId callee) @local
 	}
 	if (k == NodeKind.PATH)
 	{
-		// PATH is a leaf, not list-bearing (its .tok anchors only the first
-		// segment) -- ast.children() always returns empty here. "mem::free"
-		// is exactly three tokens: mem, ::, free.
 		Node* pn = ast.node(callee);
 		if (toks.text_at(pn.last_tok) != "free") return false;
 		return pn.last_tok - pn.first_tok == 2 && toks.text_at(pn.first_tok) == "mem";

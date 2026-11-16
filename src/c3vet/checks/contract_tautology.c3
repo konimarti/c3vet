@@ -3,32 +3,16 @@
  identical token sequence on both sides of `==`. Always true, so it
  documents nothing a reader couldn't already tell was vacuous.
 
- Scoped narrowly to self-equality, per CHECKS.md's own phrasing ("n == n and
- similar") -- not a general tautology prover. A dotted/member path like
- `a.b == a.b` is supported for free (it is just a longer identical token
- run), but a clause containing more than one top-level `==` is left alone
- rather than risk comparing the wrong halves. Likewise a ternary's own `:`
- inside the clause can truncate the scan before the real `==` is reached
- (the same "not a general parser" limitation as the multi-`==` bail) -- a
- missed finding there, never a wrong one.
+ Only self-equality is flagged, not tautologies in general. A dotted/member
+ path like `a.b == a.b` is flagged too, but a clause containing more than one
+ top-level `==` is left alone, as is a clause whose scan is cut short by a
+ ternary's own `:`. These cases are missed, never misreported.
 
  `X == X` is only a tautology when both reads are guaranteed to produce the
- same value, same as this codebase's own `same_expr` side-effect veto
- (src/c3vet/checks/support/same_expr.c3) for the Family C checks: `rand() ==
- rand()` is textually self-identical but not tautological, since a call may
- return something different each time. A clause whose identical span
- contains a call (any `(`) or `++`/`--` is left alone for the same reason.
-
- Contracts are trivia, never AST nodes (docs/DESIGN.md section 2): read via
- `TokenList.contract_before` plus `lexer::ContractLexer`, the only bridge.
- `ContractLexer` yields a flat token stream with no expression tree, so this
- is token matching, not AST matching -- and, verified empirically (not
- assumed), its `EOL` token only appears where the source contract text has
- an actual newline between clauses. Two `@require` clauses packed onto one
- line with no separator at all produce no token between them -- the next
- clause's own `AT_IDENT` is the only boundary marker in that case. Clause
- scanning below treats AT_IDENT/COLON/EOL/end-of-stream as the complete set
- of boundary markers precisely because of that.
+ same value: `rand() == rand()` is textually self-identical but not
+ tautological, since a call may return something different each time. A
+ clause whose identical span contains a call (any `(`) or `++`/`--` is left
+ alone.
 *>
 module c3vet;
 
@@ -63,7 +47,6 @@ fn bool visit_contract_tautology(Ast* ast, NodeId id, any context) @local
 	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL) return true;
 
 	TokenList* toks = w.unit.toks();
-	// n.first_tok, not n.tok -- see contract_void_return.c3 for why.
 	uint ct = toks.contract_before(n.first_tok);
 	if (ct == parser::NO_TOKEN) return true;
 
@@ -140,13 +123,7 @@ fn bool same_tokens(Token[] toks, sz a, sz b, sz len) @local
 	return true;
 }
 
-<*
- True when the span could read a different value each time: a call (any
- `(`, since there is no AST here to tell a call from a parenthesized
- sub-expression -- conservative either way) or `++`/`--`. `X == X` is only
- a tautology when both reads are guaranteed equal; `rand() == rand()` is
- textually self-identical but not tautological.
-*>
+<* True when the span could read a different value each time: a call (any `(`) or `++`/`--`. *>
 fn bool span_has_side_effect(Token[] toks, sz start, sz len) @local
 {
 	for (sz k = 0; k < len; k++)

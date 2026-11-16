@@ -1,13 +1,7 @@
 <*
- T2: statement reachability -- deliberately narrower than that name suggests.
-
- Walking the actual Phase 3 catalog, no check needs a control-flow graph.
- `unused-catch-binding`/`unused-try-binding` only need "is this binding ever
- read inside the branch where it's in scope" -- a plain subtree scan, not
- dataflow. So `Flow` itself carries no state; the real answer comes from
- `is_read`, a free function against the `Ast` directly. The field exists so
- `Unit.flow`'s frozen shape has a type, and so a future check that genuinely
- needs more can grow into it without another interface change.
+ Binding-use queries. There is no control-flow graph: `Flow` carries no
+ state, and `is_read` answers "is this binding ever read in this subtree"
+ directly against the `Ast`.
 *>
 module c3vet;
 

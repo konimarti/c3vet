@@ -30,12 +30,6 @@ struct FloatEqualWalker
 fn any make_float_equal_state(Ctx* ctx, Unit* u, Allocator a) @local
 	=> alloc::new(a, FloatEqualWalker, { .ctx = ctx, .unit = u });
 
-<*
- Only reacts to FN_DECL/MACRO_DECL, then scans that one function's body with
- its own `fn_decl` id threaded explicitly through the recursion (rather than
- mutable "current function" state on the walker) so a top-level declaration
- after this function can never see a stale function id left over from it.
-*>
 fn bool visit_float_equal(Ast* ast, NodeId id, any context) @local
 {
 	FloatEqualWalker* w = (FloatEqualWalker*)context;
@@ -51,9 +45,6 @@ fn void scan_body(Ast* ast, FloatEqualWalker* w, NodeId fn_decl, NodeId id) @loc
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
 
-	// Scopes never indexes a LAMBDA's own locals (see scope.c3's
-	// collect_locals), so a name inside one cannot be resolved against the
-	// enclosing function's scope without risking a shadowed-name mix-up.
 	if (n.kind == NodeKind.LAMBDA) return;
 
 	if (n.kind == NodeKind.BINARY)

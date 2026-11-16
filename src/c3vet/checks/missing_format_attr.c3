@@ -2,8 +2,8 @@
  `missing-format-attr`: a function whose last parameter is `args...` which passes
  an earlier `String` parameter to a `@format` callee, but lacks `@format(n)` itself.
 
- docs/CHECKS.md Family F. Adding `@format(n)` lets c3c type-check every call site
- of the wrapper against the format string forever.
+ Adding `@format(n)` lets c3c type-check every call site of the wrapper
+ against the format string.
 *>
 module c3vet;
 
@@ -42,7 +42,6 @@ fn bool visit_missing_format_attr(Ast* ast, NodeId id, any ctx) @local
 	if (sig_id == parser::NONE || ast.kind(sig_id) != NodeKind.SIGNATURE) return true;
 	if (has_format_attr(ast, w.unit.toks(), sig_id)) return true;
 
-	// Extract declared parameters.
 	List{NodeId} params;
 	params.tinit();
 	foreach (c : ast.children(sig_id))
@@ -204,8 +203,7 @@ fn String call_name(Ast* ast, TokenList* toks, NodeId id) @local
 <*
  The module prefix of a qualified call (`mod::sub::name(...)` -> `mod::sub`),
  or "" for an unqualified one. `PATH`'s own span is the whole dotted
- sequence; the qualifier is everything before the final `::name`, i.e. every
- token up to (not including) the last two.
+ sequence; the qualifier is everything before the final `::name`.
 *>
 fn String call_qualifier(Ast* ast, TokenList* toks, NodeId id) @local
 {

@@ -1,9 +1,8 @@
 <*
  Target resolution: which files c3vet reads.
 
- The reported scope. Dependencies, build output and dot-directories are never
- walked, which is the direct answer to c3c's --validation=obnoxious reporting
- errors inside lib/std. See docs/DESIGN.md section 5.
+ Dependencies, build output and dot-directories are never walked, so findings
+ are reported only for the project's own sources.
 *>
 module c3vet::cli;
 

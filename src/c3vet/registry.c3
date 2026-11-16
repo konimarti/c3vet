@@ -1,10 +1,5 @@
 <*
- The check registry.
-
- ORCHESTRATOR-OWNED. This is the one file where three lanes would otherwise
- conflict on every commit, so lanes do not edit it: report your check's
- `Check` literal in your completion note and the orchestrator lands it.
- See docs/WORKPLAN.md rule 3.
+ The check registry. Adding a check means adding its `Check` to `ALL_CHECKS`.
 *>
 module c3vet;
 

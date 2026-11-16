@@ -1,9 +1,8 @@
 <*
  `temp-to-global`: a `talloc`-derived value assigned to a global or `tlocal` variable.
 
- docs/CHECKS.md Family A. Assigning memory allocated by the temporary allocator
- to a global or thread-local variable allows the temporary pointer to escape the
- current tick/arena lifetime, resulting in use-after-free once the arena resets.
+ The temporary pointer outlives its arena, so it is a use-after-free once the
+ arena resets.
 *>
 module c3vet;
 
@@ -52,7 +51,6 @@ fn bool visit_temp_to_global(Ast* ast, NodeId id, any ctx) @local
 
 	if (n.kind != NodeKind.FN_DECL) return true;
 
-	// In a function, collect local names, temp-origin locals, and static/tlocal locals.
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
 	List{String} temp_locals;
 	temp_locals.tinit();
@@ -83,7 +81,6 @@ fn bool visit_temp_to_global(Ast* ast, NodeId id, any ctx) @local
 		}
 	}
 
-	// Walk function body inspecting assignments.
 	check_assignments_in_body(w, n.rhs, &temp_locals, &local_names, &tlocal_or_static_locals);
 	return true;
 }
@@ -94,7 +91,6 @@ fn void check_assignments_in_body(TempToGlobalWalker* w, NodeId id, List{String}
 	Ast* ast = w.unit.ast();
 	Node* n = ast.node(id);
 
-	// Do not descend into nested functions, macros, or lambdas.
 	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
 
 	// In an INIT_LIST, designated field initializers look like ASSIGN (.field = val). Skip them.

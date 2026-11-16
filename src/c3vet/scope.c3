@@ -1,13 +1,12 @@
 <*
- T2: per-function scope map -- every parameter and local, with its
+ Per-function scope map -- every parameter and local, with its
  *declared* type only. No inference: a local with no explicit type
  (`var x = ...`) is recorded with `type = NONE`, and a check that needs a
  type simply finds nothing to match, which is the correct, conservative
  answer for a "false positives not acceptable" check.
 
- Built once per `Unit` by the engine (`engine.c3`'s `run_checks`) when some
- enabled check is `Tier.LOCAL` or above, and shared by every such check --
- see `Unit.scopes`.
+ Built once per `Unit` when some enabled check is `Tier.LOCAL` or above, and
+ shared by every such check; see `Unit.scopes`.
 *>
 module c3vet;
 

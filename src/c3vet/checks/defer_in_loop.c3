@@ -1,17 +1,12 @@
 <*
  `defer-in-loop`: a `defer` statement lexically inside a loop body.
 
- Reframed at Phase 3 integration. The original premise ("defer runs at
- function exit, not per iteration") is backwards for C3 -- `defer` is
- scope-scoped, not function-scoped, and fires at the end of *each*
- iteration for FOR/FOREACH/WHILE/DO alike (verified with c3_run; see commit
- history). The actually-useful fact is the opposite one: a reader coming
- from a language where `defer` *is* function-scoped (Go, most notably) may
- expect a loop-body `defer` to run once at the end, when it in fact runs
- every iteration. This check exists to surface that construct for a
- second look, not to claim either behavior is wrong. Purely structural:
- a hand-rolled recursive walk with a loop-depth counter, since
- `parser::walk`'s visitor has no "leaving this node" hook to decrement on.
+
+ `defer` is scope-scoped in C3: it fires at the end of each loop iteration,
+ not once at function exit. A reader coming from a language where `defer`
+ is function-scoped (Go, most notably) may expect a loop-body `defer` to
+ run once at the end. The check surfaces the construct for a second look; it
+ does not claim either behavior is wrong.
 *>
 module c3vet;
 

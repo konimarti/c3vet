@@ -1,9 +1,8 @@
 <*
  `temp-escapes-struct`: a talloc stored into a field of a struct that is then returned.
 
- docs/CHECKS.md Family A. Storing a temporary allocation into a struct field and
- then returning that struct (by value or pointer) causes the caller to receive a
- reference to memory that will be freed at the next arena reset.
+ Returning such a struct (by value or pointer) hands the caller a reference to
+ memory that is freed at the next arena reset.
 *>
 module c3vet;
 
@@ -37,7 +36,6 @@ fn bool visit_temp_escapes_struct(Ast* ast, NodeId id, any ctx) @local
 	Node* n = ast.node(id);
 	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL) return true;
 
-	// Collect temp-origin locals.
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
 	List{String} temp_locals;
 	temp_locals.tinit();
@@ -51,7 +49,6 @@ fn bool visit_temp_escapes_struct(Ast* ast, NodeId id, any ctx) @local
 		}
 	}
 
-	// Collect names of variables returned in this function.
 	List{String} returned_vars;
 	returned_vars.tinit();
 	collect_returned_vars(w, n.rhs, &returned_vars, &temp_locals);

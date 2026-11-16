@@ -1,26 +1,17 @@
 <*
  Project-wide declaration table.
 
- Indexes the WIDER scope -- project sources plus lib/*.c3l dependencies plus
- the standard library, declarations only, function bodies skipped -- and
- answers questions about declarations: "does io::printfn carry @format(n)?",
- "what does std::math export?". `Ctx.report` enforces the narrower reported
- scope, so a stale or stdlib-only entry here can never surface as a
- diagnostic -- see docs/DESIGN.md section 5.
+ Indexes project sources, lib/*.c3l dependencies and the standard library
+ (declarations only, function bodies skipped) and answers questions about
+ declarations: "does io::printfn carry @format(n)?", "what does std::math
+ export?". Entries from outside the reported files never surface as
+ diagnostics.
 
- Only `missing-format-attr` needs the standard library indexed. The other T3
- consumers (`unused-import`, `unused-private-decl`) only need project-local
- declarations, so a run where the standard library cannot be located still
- produces a correct (if more conservative) table -- see `find_stdlib_root`.
-
- Indexing reuses `c3::parser`, same as a reported-scope file, rather than a
- second hand-rolled scanner. The real standard library uses some syntax this
- parser does not yet cover (confirmed empirically: `lib/std/io/io.c3` hits an
- unparsed construct partway through and recovers via error nodes), so a file
- like that is only indexed up to its first unparsed declaration. This can
- never cause a false positive -- a missing entry just means less is known,
- which is exactly the conservative degradation `unused-import`/
- `missing-format-attr` are specified to prefer (`docs/CHECKS.md`).
+ Only `missing-format-attr` needs the standard library indexed. If the
+ standard library cannot be located, the table is built from project-local
+ declarations alone and checks degrade conservatively (fewer findings, never
+ false ones). A file the parser cannot fully parse is indexed only up to its
+ first unparsed declaration.
 *>
 module c3vet;
 
@@ -79,19 +70,11 @@ fn DeclInfo* DeclTable.find(&self, String mod, String name)
  in module `mod`; -1 if none carries one.
 
  `mod`, if non-empty, is the qualifier as written at the call site
- (`io::printfn(...)` -> `"io"`) -- which C3 always spells as the LAST
- segment of whatever module was imported, never the full path (confirmed
- empirically: `import std::io;` makes `io::printfn` the call syntax, not
- `std::io::printfn`). Matched against each declaration's own full module
- path by its last segment, via `module_qualifier_matches`, not by exact
- equality. `mod` empty means the call was unqualified, so the name must be
- unambiguous across every indexed module to trust it: two unrelated public
- functions sharing a name (`log`, `write`, `debug` are common across
- libraries) previously matched whichever happened to come first in the
- table, which could silently attribute the wrong function's `@format` to
- an unrelated same-named callee. Either way, ambiguous is answered as "no
- `@format` found" (-1), not a guess, same as everywhere else this tool
- prefers a false negative over a false positive.
+ (`io::printfn(...)` -> `"io"`): the last segment of the imported module
+ path, matched against each declaration's module by its last segment.
+ `mod` empty means the call was unqualified, so the name must be
+ unambiguous across every indexed module. Ambiguous names answer -1 ("no
+ `@format` found"), preferring a false negative to a false positive.
 *>
 fn int DeclTable.format_param_of(&self, String mod, String name)
 {
@@ -169,10 +152,8 @@ fn bool module_qualifier_matches(String mod, String qualifier) @local
 
 <*
  Build the table from a set of roots (files or directories; directories are
- walked recursively, unlike the reported-scope walk in `cli::collect`, this
- one does not skip `lib`). Every declaration name and module path is copied
- into `a`, so the table outlives the per-file transient parse that produced
- it.
+ walked recursively, including `lib`). Names and module paths are copied into
+ `a`, so the table owns its strings.
 *>
 fn void build_table(DeclTable* t, String[] roots, Allocator a)
 {
@@ -186,22 +167,8 @@ fn void build_table(DeclTable* t, String[] roots, Allocator a)
 <*
  Adds declarations from `stdlib_root` to an already-built table, restricted
  to the modules actually imported -- directly, or as a submodule of an
- import -- by any file in `project_files`. Not the whole real standard
- library: measured indexing every stdlib file regardless of relevance at
- over 100ms by itself, for a one-file project that uses a small fraction
- of it. `module_matches` is the same submodule-prefix rule `exported_names`
- already uses ("import std::net" is used by "std::net::tcp" too), so a
- stdlib file is included under exactly the same rule a usage check would
- use to decide the import itself is used.
-
- Each stdlib file is lexed (`peek_module_name`) to learn its module before
- deciding whether the much more expensive full parse-and-index
- (`index_file`) is worth doing on it -- lexing alone is roughly half of a
- full file's indexing cost (measured ~32 MB/s lexing vs ~15 MB/s full
- parse over the real corpus), so skipping full indexing for an irrelevant
- file still leaves its lex cost paid, but a project's own imports are
- almost always a small fraction of the standard library, so the saved
- parses dominate.
+ import -- by any file in `project_files`. A submodule matches its import prefix ("import std::net" covers
+ "std::net::tcp").
 *>
 fn void add_stdlib_declarations(DeclTable* t, String stdlib_root, String[] project_files, Allocator a)
 {
@@ -328,20 +295,10 @@ fn void index_file(DeclTable* t, String path_, Allocator a) @local
 }
 
 <*
- Blank every top-level `{ ... }` body (recursively -- nested braces inside
- stay blanked too) before handing the file to `parser::parse`.
-
- Declaration-only indexing does not need bodies, and the full parser is not
- required to fully parse arbitrary real-world body syntax: verified
- empirically that `lib/std/io/io.c3` contains a body construct (a compile-time
- `$typeof(...)`-typed local declaration) this parser's statement grammar does
- not resynchronize cleanly from, which swallows every later top-level
- declaration in the file. Blanking bodies first sidesteps that case entirely
- -- `printfn`/`fprintf`/`printf` (37 top-level decls, 0 errors) are indexed
- where parsing the raw file found only 5 before the first failure.
-
- Brace matching is done over tokens from the real lexer, not raw bytes, so a
- `"{"` inside a string or comment is never mistaken for a body boundary.
+ Blank every top-level `{ ... }` body (nested braces included) before
+ handing the file to `parser::parse`, so only declarations are indexed.
+ Braces are matched over lexer tokens, so a `"{"` inside a string or comment
+ is never mistaken for a body boundary.
 *>
 fn String strip_bodies(String src, Allocator a) @local
 {

@@ -1,9 +1,8 @@
 <*
  Whether an expression's value is temp-allocator-derived.
 
- Shared by every Family A check (`temp-escapes-fn`, `temp-escapes-pool`,
- `temp-escapes-struct`, `temp-wrong-free`, `temp-to-global`). Deliberately
- syntactic and narrow, per docs/WORKPLAN.md's Phase 3 note: no type
+ Used by `temp-escapes-fn`, `temp-escapes-pool`, `temp-escapes-struct`,
+ `temp-wrong-free` and `temp-to-global`. Purely syntactic: no type
  resolution, no alias analysis. A call counts as temp-origin when either:
 
    - its callee is one of `mem`'s seven temp-allocation macros (`talloc`,
@@ -14,11 +13,11 @@
      qualified), the well-known alias for the current temp allocator
      (`x.init(tmem)`, `alloc::new(tmem, Type)`, `path::ls(tmem, ...)`).
 
- Known gap, accepted rather than chased: a module's own bespoke `t`-prefixed
+ Not detected: a module's own bespoke `t`-prefixed
  convenience wrapper that hardcodes the temp allocator internally without
- taking one as an argument (`path::tnew`, `string::tformat`) is invisible to
- this helper -- it is neither in the `mem` name list nor does its call site
- pass `tmem` explicitly. False negative, not a false positive.
+ taking one as an argument (`path::tnew`, `string::tformat`) is not
+ recognized, since it is not in the `mem` name list and its call site does
+ not pass `tmem`.
 *>
 module c3vet;
 
@@ -53,7 +52,7 @@ fn bool is_tmem_name(Ast* ast, TokenList* toks, NodeId id) @local
 
 <*
  True when `call_id` (a `CALL` node) allocates from the current temp
- allocator -- see the module doc comment above for exactly which shapes.
+ allocator (see the module doc comment).
 *>
 fn bool is_temp_origin_call(Ast* ast, TokenList* toks, NodeId call_id)
 {
@@ -73,8 +72,7 @@ fn bool is_temp_origin_call(Ast* ast, TokenList* toks, NodeId call_id)
 <*
  True when `init` (a `VAR_DECL`'s `rhs`, or any expression) is temp-origin:
  either directly a qualifying `CALL`, or a `CALL` wrapped in at most one
- `CAST` (`(int*)mem::talloc(int)`). Anything deeper is not tracked -- see
- the module doc comment.
+ `CAST` (`(int*)mem::talloc(int)`). Anything deeper is not tracked.
 *>
 fn bool is_temp_origin_init(Ast* ast, TokenList* toks, NodeId init)
 {

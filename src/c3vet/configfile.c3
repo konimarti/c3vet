@@ -1,17 +1,13 @@
 <*
  Project-level configuration, loaded once per run.
 
- docs/DESIGN.md: "Config in project.json under a c3vet key, or .c3vet in the
- project root; CLI flags win." Same shape either way -- `enable`/`disable`
- string arrays and a `no-suppress` bool, the same three things the CLI
- flags cover. `.c3vet` wins if both exist, since a file whose only purpose
- is c3vet's own config is the more specific, more deliberate choice.
+ Config lives in project.json under a `c3vet` key, or in a `.c3vet` file in
+ the project root; the same shape either way: `enable`/`disable` string
+ arrays and a `no-suppress` bool. `.c3vet` wins if both exist.
 
- Loaded before `parse_args` so CLI flags can override it: `args.c3`'s
- `add_names` removes a name from the opposite list before adding it, so an
- explicit `--enable=x` always beats a file that disabled `x`, and vice
- versa -- matching config.c3's documented resolution order ("each check's
- default_on, then the config file, then the command line").
+ Resolution order: each check's default_on, then the config file, then the
+ command line, so an explicit `--enable=x` beats a file that disabled `x`,
+ and vice versa.
 *>
 module c3vet;
 

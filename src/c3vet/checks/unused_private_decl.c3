@@ -94,24 +94,7 @@ struct CachedProjectFile
 	TokenList toks;
 }
 
-<*
- Every project file, lexed once -- built lazily on first use and kept for
- the rest of this `Ctx`'s run, not per candidate declaration and not per
- unit. Keyed by `Ctx*` identity, not a plain built/not-built flag: a flag
- alone would wrongly treat a second, independent run in the same process
- (every test function builds its own short-lived `Ctx`) as already cached,
- reusing another run's memory after its own allocator had already freed
- it. Allocated from `ctx.out.allocator`, the same allocator the rest of the
- run's findings live in -- `mem` for a real CLI run, `tmem` in a test,
- freed exactly when that run's own arena is.
-
- `project_module_has_name` used to re-walk the project directory tree AND
- re-lex-and-reparse every single file in it, for every single @private
- candidate it checked -- confirmed empirically (642-file corpus, every
- candidate re-scanning all 642 files) to cost over two minutes by itself,
- against ~2s for every other check in the project combined. Lexing is
- deterministic, so caching it once is exactly as correct and ~100x cheaper.
-*>
+<* Every project file, lexed once and cached for the rest of the run. *>
 struct ProjectFileCache
 {
 	Ctx*                    built_for;
@@ -130,12 +113,7 @@ fn void ensure_project_cache(Ctx* ctx, String file_path) @local
 	String root = find_project_root(file_path);
 	if (!root.len) return;
 
-	// Walk the whole project root, not just "src"/"test": a module's sibling
-	// files are not guaranteed to live under either -- confirmed empirically
-	// against the real standard library, where std::encoding::json spans
-	// json.c3 and json_marshal.c3 under "lib", which a src/test-only walk
-	// silently missed, reporting a cross-file-referenced @private decl as
-	// unused.
+	// Walk the whole project root: a module's files may live outside "src"/"test".
 	List{String} paths;
 	paths.tinit();
 	walk_sources(&paths, root);
@@ -156,15 +134,7 @@ fn void ensure_project_cache(Ctx* ctx, String file_path) @local
 	}
 }
 
-<*
- Frees the cached project-file data and resets it so a later call rebuilds.
-
- The real CLI never needs this -- the cache outlives exactly one process
- and the OS reclaims it when that exits. Tests need it: each test function
- builds its own short-lived `Ctx`/allocator, and without an explicit free
- the cache's memory outlives that test's own arena with nothing left to
- free it, which the leak detector (rightly) flags.
-*>
+<* Frees the cached project-file data so a later call rebuilds it. *>
 fn void free_project_cache()
 {
 	if (!g_project_cache.built_for) return;
@@ -181,14 +151,7 @@ fn String module_name_from_tokens(TokenList* toks, Allocator a) @local
 		if (toks.type_at(i) != MODULE) continue;
 		DString s;
 		s.init(a);
-		// Only the dotted path: IDENT (SCOPE IDENT)*. A module statement can
-		// carry a trailing attribute (`@private`) or generic parameters
-		// (`<Type>`) before the ';' -- confirmed empirically against the
-		// real standard library (std::core::mem::allocators is declared
-		// `module std::core::mem::allocators @private;`), neither of which
-		// is part of the module's own name and both of which would
-		// otherwise get appended onto it, never matching the same module's
-		// name as extracted from a file with no such suffix.
+		// Take only the dotted path; skip a trailing attribute or generic parameters.
 		for (uint j = i + 1; j < toks.len(); j++)
 		{
 			TokenType t = toks.type_at(j);
@@ -232,13 +195,7 @@ fn bool source_has_name_except(TokenList* toks, String name, uint skip_tok) @loc
 	return contract_trivia_has_name(toks, name);
 }
 
-<*
- A `@require`/`@ensure`-style contract is a single CONTRACT trivia token,
- excluded from `toks`' code stream the loop above scans -- confirmed
- empirically that a declaration referenced only inside a contract was
- otherwise reported as unused. Contracts are read the same way the Phase 4
- contract checks read them: `lexer::ContractLexer` over the raw trivia text.
-*>
+<* True when a `@require`/`@ensure` contract references the declaration. *>
 fn bool contract_trivia_has_name(TokenList* toks, String name) @local
 {
 	foreach (t : toks.all)

@@ -2,9 +2,7 @@
  `contract-void-return`: an `@return` clause documented on a function whose
  declared return type is `void`.
 
- Contracts are trivia, never AST nodes (docs/DESIGN.md section 2): read via
- `TokenList.contract_before` plus `lexer::ContractLexer`, the only bridge --
- nothing else touches contract interiors.
+ Example: a `void` function whose doc comment contains `@return the count`.
 *>
 module c3vet;
 
@@ -39,10 +37,6 @@ fn bool visit_contract_void_return(Ast* ast, NodeId id, any context) @local
 	if (!returns_void(ast, w.unit.toks(), n.lhs)) return true;
 
 	TokenList* toks = w.unit.toks();
-	// n.first_tok, not n.tok -- n.tok is the declared name, mid-signature.
-	// A contract is only ever found immediately before a declaration's own
-	// first token (its `fn`/`macro` keyword); passing n.tok here silently
-	// returns NO_TOKEN every time (verified empirically both ways).
 	uint ct = toks.contract_before(n.first_tok);
 	if (ct == parser::NO_TOKEN) return true;
 

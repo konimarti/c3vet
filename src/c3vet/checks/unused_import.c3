@@ -64,14 +64,7 @@ fn bool file_uses_import(Ast* ast, TokenList* toks, String mod, String imported_
 	return contract_trivia_uses_import(toks, mod, imported_as, exports);
 }
 
-<*
- A `@require`/`@ensure`-style contract is a single CONTRACT trivia token,
- excluded from the code-stream loop above -- confirmed empirically that an
- import referenced only inside a contract (a qualified call, or an
- unqualified exported name) was otherwise reported as unused. Mirrors
- `file_uses_import`'s own scan, over the contract's own token stream from
- `lexer::ContractLexer` instead of the file's code stream.
-*>
+<* True when a `@require`/`@ensure` contract uses the import. *>
 fn bool contract_trivia_uses_import(TokenList* toks, String mod, String imported_as, String[] exports) @local
 {
 	foreach (t : toks.all)

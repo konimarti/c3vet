@@ -1,10 +1,9 @@
 <*
  `self-assign`: `a = a`, `obj.f = obj.f`, `arr[i] = arr[i]`.
 
- docs/CHECKS.md Family C. An ASSIGN node whose operator is plain `=` (not a
- compound form like `+=`, which genuinely changes the value) and whose lhs
- and rhs are `same_expr` -- assigning something to itself is always either
- dead code or a typo for a different name.
+ Compound forms like `+=` are not flagged. Assigning something to itself is
+ always dead code or a typo for a different name. Operands with side effects
+ are not flagged.
 *>
 module c3vet;
 

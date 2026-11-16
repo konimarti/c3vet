@@ -3,15 +3,10 @@
  identifier referenced in the condition is ever assigned, `++`/`--`'d, or
  address-taken (`&ident`) anywhere in the loop body.
 
- This is the highest false-positive-risk check in this lane: the counter may
- advance through a pointer alias the AST cannot see through, or the loop may
- exit entirely via `break` before any advance is needed. Conservative here
- means thorough in the search, not lenient in the verdict -- the body scan
- walks every nested block/if/switch/loop looking for any of the three
- advancing shapes before concluding "never advances", so a real advance
- anywhere in the body is never missed. It does not special-case `break`:
- whether that turns out to matter is a measured-FP-count question, answered
- in the commit message, not a guess baked into the logic.
+
+ False positives are possible: the counter may advance through a pointer
+ alias, or the loop may exit via `break` before any advance is needed.
+ `break` is not special-cased.
 *>
 module c3vet;
 

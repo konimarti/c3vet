@@ -1,25 +1,17 @@
 <*
  Structural expression equality, with a side-effect guard.
 
- Shared by every Family C check (`self-assign`, `self-compare`, `self-op`,
- `dup-branch`): comparing two syntactically identical expressions is only
- evidence of a copy-paste bug when both reads are guaranteed to produce the
- same value. `f() == f()` and `*p == *p` are not guaranteed that -- a call
- may return something different each time, `++`/`--` changes the operand,
- `=` is itself a side effect, and a dereference may read through a pointer
- whose target changed between the two reads (this is also the parser's only
- reachable proxy for "volatile load": there is no VOLATILE node kind, so a
- plain deref is treated as potentially-volatile and excluded, conservatively,
- rather than risk a false positive). So `same_expr` refuses to compare at all
- when either side contains any of those four shapes anywhere in its subtree.
+ Used by `self-assign`, `self-compare`, `self-op` and `dup-branch`.
+ Comparing two identical expressions only suggests a copy-paste bug when
+ both reads are guaranteed to produce the same value. `f() == f()` and
+ `*p == *p` are not: a call may return something different each time,
+ `++`/`--` changes the operand, `=` is itself a side effect, and a
+ dereference may read through a pointer whose target changed. `same_expr`
+ therefore refuses to compare when either side contains any of those.
 
- That guard only makes sense for expression-identity checks ("this one read
- is guaranteed to equal that one read"). `dup-branch` is a different
- question -- "was this code copy-pasted?" -- where a call or assignment
- inside an otherwise-identical branch body is not a reason to stay quiet;
- only one branch of an if/else-if chain ever runs, so there is no "two reads"
- to worry about. `same_shape` is exported separately for that case: the same
- recursive structural comparison, without the side-effect veto.
+ `same_shape` compares structure without that guard, for `dup-branch`,
+ where a call or assignment inside an otherwise-identical branch body is
+ not a reason to stay quiet.
 *>
 module c3vet;
 
@@ -41,9 +33,7 @@ fn bool same_expr(Ast* ast, TokenList* toks, NodeId a, NodeId b)
 
 <*
  Recursive structural comparison: equal kind and token text at every node,
- with no side-effect guard. Used directly by `same_expr` (after its guard
- passes) and by `dup-branch` (which does not want the guard at all -- see
- the module doc comment above).
+ with no side-effect guard.
 *>
 fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b)
 {
@@ -66,10 +56,7 @@ fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b)
 
 	if (na.lhs == parser::NONE && na.rhs == parser::NONE && nb.lhs == parser::NONE && nb.rhs == parser::NONE)
 	{
-		// A true leaf (IDENT, PATH, literals, ...). `.tok` is only an anchor,
-		// not the whole identity -- a qualified PATH's `.tok` is its first
-		// segment, so `os::POLLERR` and `os::POLLHUP` would otherwise compare
-		// equal on that one token alone. Compare the full node span instead.
+		// Leaf: compare the full span, so `os::POLLERR` != `os::POLLHUP`.
 		if (na.last_tok - na.first_tok != nb.last_tok - nb.first_tok) return false;
 		for (uint i = 0; i <= na.last_tok - na.first_tok; i++)
 		{

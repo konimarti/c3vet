@@ -44,8 +44,6 @@ fn String call_name(Ast* ast, TokenList* toks, NodeId id) @local
 	Node* n = ast.node(id);
 	if (n.kind == NodeKind.IDENT || n.kind == NodeKind.TYPE_NAME) return toks.text_at(n.tok);
 	if (n.kind == NodeKind.MEMBER_ACCESS) return call_name(ast, toks, n.rhs);
-	// PATH is a leaf whose .tok anchors only the first segment -- the name
-	// to match against a same-file function is the last segment instead.
 	if (n.kind == NodeKind.PATH) return toks.text_at(n.last_tok);
 	return "";
 }

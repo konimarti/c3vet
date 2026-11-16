@@ -1,10 +1,8 @@
 <*
  `self-op`: `a - a`, `a / a`, `a % a`, `a ^ a`, `a & a`, `a | a`.
 
- docs/CHECKS.md Family C. A BINARY node whose operator is one of these six
- and whose lhs and rhs are `same_expr` -- each has a constant result (`0`
- for `-`/`^`, `1` for `/`, `0` for `%`, and the operand itself for `&`/`|`),
- so the operation tells the reader nothing the constant wouldn't.
+ Each has a constant result (`0` for `-`/`^`/`%`, `1` for `/`, and the operand
+ itself for `&`/`|`). Operands with side effects are not flagged.
 *>
 module c3vet;
 

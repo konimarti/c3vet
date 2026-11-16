@@ -1,9 +1,9 @@
 <*
  `temp-escapes-pool`: a talloc inside `@pool() { ... }` assigned to a variable declared outside the pool body.
 
- docs/CHECKS.md Family A. When a `@pool` scope exits, the temporary allocator
- frees all allocations made within it. Assigning any such allocation to a variable
- with a longer lifetime causes a use-after-free once the pool block exits.
+ When a `@pool` scope exits, the temporary allocator frees all allocations made
+ within it. Assigning such an allocation to a variable with a longer lifetime
+ is a use-after-free once the pool block exits.
 *>
 module c3vet;
 
@@ -104,7 +104,6 @@ fn void inspect_pool_block(TempEscapesPoolWalker* w, NodeId block_id, LocalDecl[
 	TokenList* toks = w.unit.toks();
 	Node* b = ast.node(block_id);
 
-	// Collect temp-origin locals declared inside this pool block.
 	List{String} pool_temp_locals;
 	pool_temp_locals.tinit();
 	foreach (d : locals)
@@ -120,7 +119,6 @@ fn void inspect_pool_block(TempEscapesPoolWalker* w, NodeId block_id, LocalDecl[
 		}
 	}
 
-	// Walk statements in the pool block looking for assignments to outer variables.
 	check_pool_assignments(w, block_id, b.first_tok, b.last_tok, locals, &pool_temp_locals);
 }
 
@@ -141,7 +139,6 @@ fn void check_pool_assignments(TempEscapesPoolWalker* w, NodeId id, uint b_first
 		NodeId val = n.rhs;
 		if (val_is_temp(ast, toks, val, pool_temp_locals))
 		{
-			// Check if target was declared outside this pool block.
 			if (target_is_outer(ast, toks, target, b_first, b_last, locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-pool",

@@ -5,13 +5,8 @@
 
  Opt-in (`default_on = false`): `while (true) {}` legitimately fires here --
  a busy-wait with a side-effect-free condition and a truly empty body is
- exactly what this check targets, by CHECKS.md's own call. The separate,
- already-rejected "while (true) without a break" check is not this one and
- is not implemented anywhere in this file.
-
- The side-effect test is a hand-written copy of
- `checks/support/same_expr.c3`'s `@local has_side_effect`, not an import of
- it -- that file is off-limits this lane, per the Phase 2 instructions.
+ exactly what this check targets. A loop whose condition has a side effect
+ (a call, `++`/`--`, an assignment) is not flagged.
 *>
 module c3vet;
 
@@ -84,7 +79,7 @@ fn bool is_empty_block(Ast* ast, NodeId id) @local
 	return n.kind == NodeKind.BLOCK && !ast.children(id).len;
 }
 
-<* Hand-copied from `same_expr.c3`'s `@local has_side_effect` -- see file doc. *>
+<* True when `id` or anything beneath it is a call, `++`/`--`, an assignment, or a dereference. *>
 fn bool loop_has_side_effect(Ast* ast, TokenList* toks, NodeId id) @local
 {
 	if (id == parser::NONE) return false;

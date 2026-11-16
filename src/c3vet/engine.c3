@@ -1,8 +1,5 @@
 <*
  The check interface and the tier scheduler.
-
- FROZEN INTERFACE. See docs/DESIGN.md section 5 and docs/WORKPLAN.md rule 1.
- Checks consume this and never edit it.
 *>
 module c3vet;
 
@@ -57,7 +54,7 @@ struct Ctx
 	sz              suppressed;
 	<*
 	 Paths a diagnostic may be reported for. Empty means "anything".
-	 Indexed scope is wider than reported scope; see docs/DESIGN.md 5.
+	 Declarations may be indexed from more files than are reported.
 	*>
 	List{String}    reported;
 }
@@ -75,7 +72,7 @@ struct Check
 	<* One line, shown by --list-checks. *>
 	String  doc;
 	Tier    tier;
-	<* Set only after a clean run over the conformance corpus. *>
+	<* Whether the check runs unless disabled; opt-in checks leave this false. *>
 	bool    default_on;
 	<* Skip files containing ERROR_* nodes. Almost always true. *>
 	bool    skip_on_error;

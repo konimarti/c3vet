@@ -1,11 +1,9 @@
 <*
  The `parse` check: the file did not parse.
 
- A real registered check, not a side channel. That matters because it is the
- loudest thing the tool prints on a broken file, and a finding you cannot
- name is a finding you cannot disable, suppress or count. Being in
- ALL_CHECKS means `--disable=parse`, `--list-checks` and
- `// c3vet:ignore[parse]` all work on it like any other check.
+ Reported when a file could not be parsed. Like any other check it can be
+ turned off with `--disable=parse`, listed with `--list-checks` and
+ suppressed with `// c3vet:ignore[parse]`.
 *>
 module c3vet;
 
