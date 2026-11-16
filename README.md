@@ -84,6 +84,7 @@ c3vet                    # the current project's sources
 c3vet src/ file.c3       # explicit paths
 c3vet --list-checks
 c3vet --enable=a,b --disable=c
+c3vet --enable-all       # every check, including the off-by-default ones
 c3vet --no-suppress      # audit run: ignore every suppression comment
 ```
 

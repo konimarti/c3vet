@@ -50,6 +50,10 @@ outright bug.
 	always wins over *--enable*, so a broad *--enable* plus a narrow
 	*--disable* behaves the way you would expect.
 
+*--enable-all*
+	Run every check, including the ones that are off by default.
+	*--disable* still removes individual checks from the run.
+
 *--no-suppress*
 	Ignore every `// c3vet:ignore` comment. For an audit run that must see
 	everything a normal run would quietly skip.
@@ -108,7 +112,7 @@ c3vet --enable=cond-not-bool
 Run every check, as a one-off deep pass:
 
 ```
-c3vet --enable=$(c3vet --list-checks | awk '{print $1}' | grep -v '^parse$' | paste -sd,)
+c3vet --enable-all
 ```
 
 Audit run that ignores every suppression comment, over one directory:

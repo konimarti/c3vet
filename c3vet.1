@@ -63,6 +63,12 @@ always wins over \fB\-\-enable\fR, so a broad \fB\-\-enable\fR plus a narrow
 \fB\-\-disable\fR behaves the way you would expect.\&
 .PP
 .RE
+\fB\-\-enable\-all\fR
+.RS 4
+Run every check, including the ones that are off by default.\& \fB\-\-disable\fR still
+removes individual checks from the run.\&
+.PP
+.RE
 \fB\-\-no\-suppress\fR
 .RS 4
 Ignore every `// c3vet:ignore` comment.\& For an audit run that must see
@@ -140,7 +146,7 @@ Run every check, as a one\-off deep pass:
 .PP
 .nf
 .RS 4
-c3vet \-\-enable=$(c3vet \-\-list\-checks | awk \&'{print $1}\&' | grep \-v \&'^parse$\&' | paste \-sd,)
+c3vet \-\-enable\-all
 .fi
 .RE
 .PP

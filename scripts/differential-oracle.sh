@@ -34,10 +34,9 @@ if [ ! -x build/c3vet ]; then
 fi
 
 files=$(find "$CHECKOUT/lib" "$CHECKOUT/test/unit" -name '*.c3' -o -name '*.c3i')
-all_checks=$(./build/c3vet --list-checks | awk '{print $1}' | grep -v '^parse$' | paste -sd,)
 
 echo "1. running c3vet with every check enabled"
-./build/c3vet --enable="$all_checks" "$CHECKOUT/lib" "$CHECKOUT/test/unit" 2>/dev/null \
+./build/c3vet --enable-all "$CHECKOUT/lib" "$CHECKOUT/test/unit" 2>/dev/null \
 	| grep -oE '^[^:]+:[0-9]+:[0-9]+' > /tmp/c3vet_oracle_locs.txt
 c3vet_count=$(wc -l < /tmp/c3vet_oracle_locs.txt)
 echo "   $c3vet_count finding location(s)"

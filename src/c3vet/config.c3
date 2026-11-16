@@ -16,6 +16,8 @@ struct Config
 	List{String} enabled;
 	<* Names forced off, from --disable. *>
 	List{String} disabled;
+	<* Run every check, from --enable-all. *>
+	bool         enable_all;
 	<* Ignore every suppression comment, for an audit run. *>
 	bool         no_suppress;
 	<* Report findings for dependencies and the stdlib too. Diagnostic use. *>
@@ -37,12 +39,13 @@ fn void Config.free(&self)
 <*
  Whether `c` runs, given its default and any overrides.
 
- --disable always wins over --enable, so a broad --enable plus a narrow
+ --disable always wins over --enable and --enable-all, so a broad enable plus a narrow
  --disable behaves the way a user expects.
 *>
 fn bool Config.runs(&self, Check c)
 {
 	foreach (n : self.disabled) if (n == c.name) return false;
+	if (self.enable_all) return true;
 	foreach (n : self.enabled) if (n == c.name) return true;
 	return c.default_on;
 }

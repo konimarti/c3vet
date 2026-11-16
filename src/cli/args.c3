@@ -31,6 +31,7 @@ With no path, the current project's sources are used.
 options:
   --list-checks        list every check and whether it runs by default
   --enable=a,b         run these checks as well
+  --enable-all         run every check, including the ones off by default
   --disable=a,b        do not run these checks
   --no-suppress        ignore every // c3vet:ignore comment (audit run)
   -h, --help           this text
@@ -48,6 +49,7 @@ fn Options parse_args(Allocator a, String[] argv, Config* cfg)
 		if (arg == "-V" || arg == "--version") { o.version = true; continue; }
 		if (arg == "--list-checks") { o.list_checks = true; continue; }
 		if (arg == "--no-suppress") { o.no_suppress = true; cfg.no_suppress = true; continue; }
+		if (arg == "--enable-all") { cfg.enable_all = true; continue; }
 		if (arg.starts_with("--enable=")) { add_names(&cfg.enabled, &cfg.disabled, arg["--enable=".len..]); continue; }
 		if (arg.starts_with("--disable=")) { add_names(&cfg.disabled, &cfg.enabled, arg["--disable=".len..]); continue; }
 		if (arg.starts_with("-"))
