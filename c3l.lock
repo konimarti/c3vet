@@ -1,0 +1,3 @@
+# c3l.lock v1 - written by c3l, do not edit by hand
+lexer	git	https://github.com/konimarti/lexer.c3l.git	-	v0.1.1	commit:13c9548e1ce11711ebfedb99cc141e0b069a3371	content:0b296eee3eccc88956bdbdd7bcc20afe8ec80adc379c38f51f2db79ff462f3e2	direct	-
+parser	git	https://github.com/konimarti/parser.c3l.git	-	HEAD	commit:7cd7752f393a57e233b341f995a902a569d0d3e5	content:efe85fea9f2ffa3a5c56118c1276f249564006ebeb6a06221cbdbc6d32768e64	direct	lexer
