@@ -14,14 +14,13 @@
 #      means a check is just re-detecting something the compiler already
 #      tells the user about.
 #
-# The sources come from a c3c checkout, found via C3C_CHECKOUT (default
-# /home/km/Documents/c3c).
+# The sources come from a c3c checkout, found via C3C_CHECKOUT.
 #
 # usage: scripts/differential-oracle.sh
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-CHECKOUT="${C3C_CHECKOUT:-/home/km/Documents/c3c}"
+CHECKOUT="${C3C_CHECKOUT}"
 if [ ! -d "$CHECKOUT" ]; then
 	echo "C3C_CHECKOUT not found at $CHECKOUT; skipping (nothing to compare against)"
 	exit 0
