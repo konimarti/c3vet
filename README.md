@@ -17,8 +17,9 @@ What it catches:
 - **Dead code and stuck loops**, e.g. a loop that never advances, empty bodies, unused labels, imports and private declarations.
 - **Suspicious constants**, e.g. a literal that overflows its cast or integer division turned into a float.
 - **C3 specific traps**, e.g. a `defer` that runs on every loop iteration instead of once, or a contract that can never fail.
+- **Non-idiomatic C3** (off by default), e.g. `mem::free(p)` where `free(p)` is enough, an explicit `= { }` on a local, or a catch-and-assign-default that should be `x = v ?? {};`.
 
-And more: 29 checks in total, 15 of them on by default. `c3vet --list-checks` shows them all.
+And more: 30 checks in total, 15 of them on by default. `c3vet --list-checks` shows them all.
 
 What the compiler doesn't give you:
 
