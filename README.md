@@ -126,6 +126,45 @@ a = a;                        // c3vet:ignore[self-assign]
 - A comment works anywhere inside the reported construct or on the line before it.
 - The run summary always counts suppressed findings, so a forgotten one can't hide a real bug.
 
+## Checks
+
+Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `--enable=<check>` or `--enable-all`.
+
+| Check | Category | Default | What it reports |
+|-------|----------|---------|-----------------|
+| `self-assign` | syntax | on | self-assignment: the right side is identical to the left |
+| `self-compare` | syntax | off | self-comparison: both sides of the comparison are identical |
+| `self-op` | syntax | off | self-operation: both operands are identical, always producing a constant |
+| `dup-branch` | syntax | on | an if/else-if chain repeats an earlier condition or block |
+| `const-cond` | syntax | off | a control-flow condition is determined by literals alone |
+| `const-int-div-to-float` | syntax | on | integer division of literals is converted to a floating value |
+| `const-narrowing-overflow` | syntax | on | an integer literal is outside the range of its explicit cast type |
+| `empty-body` | syntax | off | an if/while body that is an empty block with no comment inside |
+| `empty-loop-body` | syntax | off | a loop whose body is empty and whose condition has no side effects |
+| `loop-no-advance` | syntax | on | a for loop with no increment clause whose condition variables never change in the body |
+| `unused-label` | syntax | on | a declared label never targeted by a break/continue in the same function |
+| `temp-escapes-fn` | local | off | temp-allocated memory returned from a function |
+| `temp-escapes-pool` | local | on | temp-allocated memory inside `@pool` assigned to a variable declared outside the pool |
+| `temp-escapes-struct` | local | on | temp-allocated memory stored into a struct field and returned |
+| `temp-wrong-free` | local | on | calling `free` on temp-allocated memory |
+| `temp-to-global` | local | on | temp-allocated memory assigned to a global or thread-local variable |
+| `swallowed-fault` | local | on | an empty catch branch silently discards a fault |
+| `silenced-fault` | local | off | a void cast discards an Optional-returning call |
+| `unused-catch-binding` | local | off | a catch binding is never read in its branch |
+| `unused-try-binding` | local | on | a try binding is never read in its branch |
+| `force-unwrap` | local | off | force unwrap outside a test or main function |
+| `float-equal` | local | off | `==` or `!=` compares a float literal or a float-declared variable |
+| `cond-not-bool` | local | off | if/while condition is a bare integer or pointer variable, not a boolean |
+| `defer-in-loop` | local | off | a defer statement inside a loop body runs every iteration, not once |
+| `contract-void-return` | local | on | an `@return` contract is documented on a function returning void |
+| `contract-tautology` | local | on | a `@require` clause compares an expression to itself with `==` |
+| `idiomatic-c3` | local | off | C-style code where idiomatic C3 is shorter: `mem::free`, `= { }` on a local, `mem::copy` into an array, catch-and-assign-default |
+| `missing-format-attr` | project | on | function forwarding a format string and varargs without `@format` attribute |
+| `unused-import` | project | off | an imported module is not referenced in this file |
+| `unused-private-decl` | project | off | a private or local declaration is never referenced in scope |
+
+`parse` is not a check you configure. It reports files that fail to parse, and later checks may be skipped for them.
+
 ## License
 
 MIT
