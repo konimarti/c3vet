@@ -19,7 +19,7 @@ What it catches:
 - **C3 specific traps**, e.g. a `defer` that runs on every loop iteration instead of once, or a contract that can never fail.
 - **Non-idiomatic C3** (off by default), e.g. `mem::free(p)` where `free(p)` is enough, an explicit `= { }` on a local, or a catch-and-assign-default that should be `x = v ?? {};`.
 
-And more: 30 checks in total, 15 of them on by default. `c3vet --list-checks` shows them all.
+And more: 33 checks in total, 15 of them on by default. `c3vet --list-checks` shows them all.
 
 What the compiler doesn't give you:
 
@@ -158,7 +158,10 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `defer-in-loop` | local | off | a defer statement inside a loop body runs every iteration, not once |
 | `contract-void-return` | local | on | an `@return` contract is documented on a function returning void |
 | `contract-tautology` | local | on | a `@require` clause compares an expression to itself with `==` |
-| `idiomatic-c3` | local | off | C-style code where idiomatic C3 is shorter: `mem::free`, `= { }` on a local, `mem::copy` into an array, catch-and-assign-default |
+| `redundant-mem-free` | local | off | `mem::free` where `free` is enough: `mem::free(p)` is `free(p)`, and `mem::free(s.ptr)` on a slice is `free(s)` |
+| `redundant-zero-init` | local | off | an explicit `= { }` on a local, which is zero-initialized anyway |
+| `mem-copy-slice-to-array` | local | off | `mem::copy` of a slice into a fixed array: use `arr[:n] = src[:n]` |
+| `catch-default-operator` | local | off | catch-and-assign-default: use `x = v ?? {};` |
 | `missing-format-attr` | project | on | function forwarding a format string and varargs without `@format` attribute |
 | `unused-import` | project | off | an imported module is not referenced in this file |
 | `unused-private-decl` | project | off | a private or local declaration is never referenced in scope |
