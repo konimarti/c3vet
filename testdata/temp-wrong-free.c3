@@ -1,6 +1,7 @@
 module testdata_temp_wrong_free;
 
 import std::core::mem;
+import std::core::string;
 
 fn void bad_free_local()
 {
@@ -23,6 +24,12 @@ fn void bad_free_tmem()
 {
 	void* p = make_buf(tmem);
 	free(p); // want "free called on temp-allocated memory"
+}
+
+fn void bad_free_wrapper()
+{
+	String s = string::tformat("%s", "x");
+	mem::free(s); // want "free called on temp-allocated memory"
 }
 
 fn void good_heap_free()

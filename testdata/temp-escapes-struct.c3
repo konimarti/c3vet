@@ -1,10 +1,16 @@
 module testdata_temp_escapes_struct;
 
 import std::core::mem;
+import std::core::string;
 
 struct Holder
 {
 	int* ptr;
+}
+
+struct StrHolder
+{
+	String s;
 }
 
 fn Holder test_field_assign_escape()
@@ -29,6 +35,13 @@ fn Holder test_valid_heap()
 {
 	Holder h;
 	h.ptr = mem::alloc(int);
+	return h;
+}
+
+fn StrHolder test_field_assign_escape_via_wrapper()
+{
+	StrHolder h;
+	h.s = string::tformat("%s", "x"); // want "temp-allocated memory stored into struct field and returned"
 	return h;
 }
 

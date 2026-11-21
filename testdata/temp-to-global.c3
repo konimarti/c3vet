@@ -1,9 +1,11 @@
 module testdata_temp_to_global;
 
 import std::core::mem;
+import std::core::string;
 
 int* g_ptr = null;
 tlocal int* g_tlocal_ptr = null;
+String g_str = "";
 
 int* g_bad_init = mem::talloc(int); // want "temp-allocated memory assigned to a global or thread-local variable"
 
@@ -41,6 +43,11 @@ fn void valid_local_assign()
 	int* p = mem::talloc(int);
 	int* q = null;
 	q = p;
+}
+
+fn void assign_global_via_wrapper()
+{
+	g_str = string::tformat("%s", "x"); // want "temp-allocated memory assigned to a global or thread-local variable"
 }
 
 fn void valid_heap_global()

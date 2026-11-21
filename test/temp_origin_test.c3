@@ -35,6 +35,25 @@ fn void temp_origin_tmem_argument()
 		"a call passing 'tmem' as an argument, even under a cast, is temp-origin");
 }
 
+fn void temp_origin_stdlib_wrapper_calls()
+{
+	String src = `fn void f()
+{
+	String a = string::tformat("%s", "x");
+	String b = "x".tconcat("y");
+	String c = env::tget_var("PATH");
+	String d = tformat("%s", "x");
+}
+`;
+	ParseResult r = parser::parse(tmem, src);
+	foreach (i, n : r.ast.nodes)
+	{
+		if (n.kind != NodeKind.VAR_DECL) continue;
+		assert(c3vet::is_temp_origin_init(&r.ast, &r.toks, n.rhs),
+			"'%s' should be recognized as temp-origin", r.toks.text_at(n.tok));
+	}
+}
+
 fn void temp_origin_excludes_unrelated_calls()
 {
 	String src = `fn void f()
