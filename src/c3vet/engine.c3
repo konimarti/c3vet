@@ -100,7 +100,7 @@ struct Check
  Every check goes through here, so no check formats its own location, and
  suppression and reported-scope filtering happen in exactly one place.
 *>
-fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, args...)
+fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, args...) @format(4)
 {
 	Node* n = u.ast().node(node);
 	self.emit(u, n.first_tok, n.last_tok, check, string::format(self.out.allocator, fmt, ...args));
@@ -114,7 +114,7 @@ fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, args..
  exactly one place.
 *>
 fn void Ctx.report_at_token(&self, Unit* u, uint first_tok, uint last_tok,
-                            String check, String fmt, args...)
+                            String check, String fmt, args...) @format(5)
 {
 	self.emit(u, first_tok, last_tok, check, string::format(self.out.allocator, fmt, ...args));
 }
@@ -127,13 +127,21 @@ fn void Ctx.report_at_token(&self, Unit* u, uint first_tok, uint last_tok,
 *>
 fn void Ctx.emit(&self, Unit* u, uint first_tok, uint last_tok, String check, String msg)
 {
-	if (!self.in_reported_scope(u.path)) return;
+	// `msg` arrives already allocated (Ctx.report/report_at_token format it
+	// before calling emit): every path below either keeps it in self.out or
+	// frees it here, so a dropped finding never leaks its message.
+	if (!self.in_reported_scope(u.path))
+	{
+		msg.free(self.out.allocator);
+		return;
+	}
 
 	lexer::Token t = u.toks().tok(first_tok);
 	lexer::Token last = u.toks().tok(last_tok);
 	if (u.suppress.suppresses(check, t.ln, last.ln))
 	{
 		self.suppressed++;
+		msg.free(self.out.allocator);
 		return;
 	}
 	self.out.push({
@@ -219,9 +227,10 @@ fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 {
 	if (max_tier(enabled) >= Tier.LOCAL && !u.scopes)
 	{
-		Allocator a = ctx.out.allocator;
-		u.scopes = alloc::new(a, Scopes, build_scopes(u.ast(), u.toks(), a));
-		u.flow = alloc::new(a, Flow, build_flow(u.ast(), u.toks(), a));
+		// tmem, not ctx.out.allocator: both are rebuilt fresh per Unit inside
+		// vet_file's own @pool(), so nothing about them needs to outlive it.
+		u.scopes = alloc::new(tmem, Scopes, build_scopes(u.ast(), u.toks(), tmem));
+		u.flow = alloc::new(tmem, Flow, build_flow(u.ast(), u.toks(), tmem));
 	}
 
 	Allocator a = tmem;

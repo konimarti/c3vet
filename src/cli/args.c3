@@ -18,7 +18,13 @@ struct Options
 }
 
 fn void Options.init(&self, Allocator a) => self.targets.init(a);
-fn void Options.free(&self) => self.targets.free();
+fn void Options.free(&self)
+{
+	Allocator a = self.targets.allocator;
+	foreach (t : self.targets) t.free(a);
+	self.targets.free();
+	self.error_msg.free(a);
+}
 
 const String USAGE = `usage: c3vet [options] [path...]
 

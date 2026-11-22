@@ -191,12 +191,7 @@ fn sz measure_fp_check(Check check)
  The sibling c3c checkout used for the FP sweep above, found via
  C3C_CHECKOUT (default: /home/km/Documents/c3c).
 *>
-fn String checkout_dir()
-{
-	String? v = env::tget_var("C3C_CHECKOUT");
-	if (try v) return v;
-	return "/home/km/Documents/c3c";
-}
+fn String checkout_dir() => env::tget_var("C3C_CHECKOUT") ?? "/home/km/Documents/c3c";
 
 <* Every *.c3 and *.c3i file under `dir`, recursively. Result in temp memory. *>
 fn String[] find_c3_files(String dir)

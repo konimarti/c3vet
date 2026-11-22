@@ -34,11 +34,7 @@ fn bool visit_const_int_div(Ast* ast, NodeId id, any context) @local
 {
 	ConstIntDivWalker* w = (ConstIntDivWalker*)context;
 	Node* n = ast.node(id);
-	if (n.kind == NodeKind.VAR_DECL && is_float_type(ast, w.unit.toks(), n.lhs))
-	{
-		find_float_divisions(ast, w.unit.toks(), n.rhs, w);
-	}
-	else if (n.kind == NodeKind.CAST && is_float_type(ast, w.unit.toks(), n.lhs))
+	if ((n.kind == NodeKind.VAR_DECL || n.kind == NodeKind.CAST) && is_float_type(ast, w.unit.toks(), n.lhs))
 	{
 		find_float_divisions(ast, w.unit.toks(), n.rhs, w);
 	}

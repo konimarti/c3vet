@@ -8,7 +8,6 @@
 module c3vet;
 
 import c3::parser;
-import c3::lexer;
 import std::collections::list;
 import std::core::mem::alloc;
 

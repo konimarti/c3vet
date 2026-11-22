@@ -9,7 +9,6 @@
 *>
 module c3vet;
 
-import c3::lexer;
 import c3::parser;
 import std::core::mem::alloc;
 

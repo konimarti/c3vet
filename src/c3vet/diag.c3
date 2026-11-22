@@ -4,9 +4,7 @@
 module c3vet;
 
 import c3::parser;
-import c3::lexer;
 import std::collections::list;
-import std::io;
 
 <* The check name used for parse failures, so they render like any finding. *>
 const String PARSE_CHECK = "parse";

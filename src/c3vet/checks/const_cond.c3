@@ -28,7 +28,8 @@ fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 {
 	ConstCondWalker* w = (ConstCondWalker*)context;
 	NodeId condition = parser::NONE;
-	switch (ast.kind(id))
+	NodeKind kind = ast.kind(id);
+	switch (kind)
 	{
 		case NodeKind.IF:
 		{
@@ -44,13 +45,21 @@ fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 		}
 		default: return true;
 	}
-	if (condition != parser::NONE && is_literal_condition(ast, w.unit.toks(), condition))
+	if (condition == parser::NONE || !is_literal_condition(ast, w.unit.toks(), condition)) return true;
+	// `while (true)`/`do { ... } while (true)` is the standard loop-forever,
+	// break-explicitly-inside idiom, not a forgotten toggle -- flagging it
+	// would fire on some of the most ordinary code in any codebase.
+	if ((kind == NodeKind.WHILE || kind == NodeKind.DO) && is_true_literal(ast, w.unit.toks(), condition))
 	{
-		w.ctx.report(w.unit, id, CONST_COND.name,
-			"condition is determined by literals alone -- if this is a deliberate toggle, use $if for a compile-time condition instead");
+		return true;
 	}
+	w.ctx.report(w.unit, id, CONST_COND.name,
+		"condition is determined by literals alone -- if this is a deliberate toggle, use $if for a compile-time condition instead");
 	return true;
 }
+
+fn bool is_true_literal(Ast* ast, TokenList* toks, NodeId id) @local
+	=> ast.kind(id) == NodeKind.BOOL_LIT && toks.text_at(ast.node(id).tok) == "true";
 
 fn bool is_literal_condition(Ast* ast, TokenList* toks, NodeId id) @local
 {

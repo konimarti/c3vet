@@ -7,7 +7,6 @@
 *>
 module c3vet;
 
-import c3::lexer;
 import c3::parser;
 
 <*

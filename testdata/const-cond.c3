@@ -9,4 +9,5 @@ fn void constant_conditions(bool flag)
 	if (flag) { work; }
 	if (ALWAYS) { work; }
 	if (1 + 2) { work; }
+	while (true) { if (flag) break; } // no annotation: loop-forever-break-inside is idiomatic, not a toggle
 }

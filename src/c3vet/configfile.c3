@@ -18,35 +18,37 @@ import std::encoding::json;
 import std::collections::object;
 import std::collections::list;
 
-<* Looks in `dir` for `.c3vet` or `project.json`'s "c3vet" key, and applies whichever is found (first one wins) to `cfg`. *>
+<*
+ Looks in `dir` for `.c3vet` or `project.json`'s "c3vet" key, and applies
+ whichever is found (first one wins) to `cfg`.
+
+ Both candidates' parsed JSON stay temp-allocated and are applied inline,
+ right here, rather than returned from a helper -- a `tparse` result is only
+ valid within the temp scope that produced it, and `cfg.enabled`/`disabled`
+ only ever keep the small persistent copies `apply_name_array` makes of it.
+*>
 fn void load_config_file(Config* cfg, String dir)
 {
-	Object* obj = load_c3vet_file(dir);
-	if (!obj) obj = load_project_json_key(dir);
-	if (!obj) return;
-	apply_config_object(cfg, obj);
-}
+	String c3vet_path = string::tformat("%s/.c3vet", dir);
+	char[]? c3vet_bytes = file::load(tmem, c3vet_path);
+	if (try c3vet_bytes)
+	{
+		Object*? root = json::tparse((String)c3vet_bytes);
+		if (try root)
+		{
+			apply_config_object(cfg, root);
+			return;
+		}
+	}
 
-fn Object* load_c3vet_file(String dir) @local
-{
-	String p = string::tformat("%s/.c3vet", dir);
-	char[]? bytes = file::load(tmem, p);
-	if (catch bytes) return null;
-	Object*? root = json::tparse((String)bytes);
-	if (catch root) return null;
-	return root;
-}
-
-fn Object* load_project_json_key(String dir) @local
-{
-	String p = string::tformat("%s/project.json", dir);
-	char[]? bytes = file::load(tmem, p);
-	if (catch bytes) return null;
-	Object*? root = json::tparse((String)bytes);
-	if (catch root) return null;
-	Object*? c3vet_obj = root.get("c3vet");
-	if (catch c3vet_obj) return null;
-	return c3vet_obj;
+	String project_path = string::tformat("%s/project.json", dir);
+	char[]? project_bytes = file::load(tmem, project_path);
+	if (catch project_bytes) return;
+	Object*? project_root = json::tparse((String)project_bytes);
+	if (catch project_root) return;
+	Object*? c3vet_obj = project_root.get("c3vet");
+	if (catch c3vet_obj) return;
+	apply_config_object(cfg, c3vet_obj);
 }
 
 fn void apply_config_object(Config* cfg, Object* obj) @local

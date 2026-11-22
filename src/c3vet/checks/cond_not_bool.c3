@@ -7,7 +7,6 @@
 module c3vet;
 
 import c3::parser;
-import c3::lexer;
 import std::core::mem::alloc;
 
 const Check COND_NOT_BOOL = {

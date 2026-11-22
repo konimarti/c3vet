@@ -32,7 +32,10 @@ fn void Config.init(&self, Allocator a)
 
 fn void Config.free(&self)
 {
+	Allocator a = self.enabled.allocator;
+	foreach (n : self.enabled) n.free(a);
 	self.enabled.free();
+	foreach (n : self.disabled) n.free(a);
 	self.disabled.free();
 }
 
@@ -56,5 +59,5 @@ fn Check[] Config.select(&self, Check[] all)
 	List{Check} out;
 	out.tinit();
 	foreach (c : all) if (self.runs(c)) out.push(c);
-	return out.to_tarray();
+	return out.array_view();
 }

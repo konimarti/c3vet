@@ -53,7 +53,7 @@ fn void g(float x) {}
 	ParseResult r = parser::parse(tmem, src);
 	c3vet::Scopes s = c3vet::build_scopes(&r.ast, &r.toks, tmem);
 
-	NodeId[] fns = {};
+	NodeId[] fns;
 	List{NodeId} list; list.tinit();
 	foreach (i, n : r.ast.nodes) if (n.kind == NodeKind.FN_DECL) list.push((NodeId)i);
 	fns = list.to_tarray();

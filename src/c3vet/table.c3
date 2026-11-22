@@ -53,6 +53,17 @@ fn void DeclTable.init(&self, Allocator a)
 	self.decls.init(a);
 }
 
+fn void DeclTable.free(&self)
+{
+	Allocator a = self.decls.allocator;
+	foreach (&d : self.decls)
+	{
+		if (d.mod.len) d.mod.free(a);
+		d.name.free(a);
+	}
+	self.decls.free();
+}
+
 <* First declaration named `name`. `mod`, if non-empty, restricts the search to that module. *>
 fn DeclInfo* DeclTable.find(&self, String mod, String name)
 {
@@ -346,7 +357,10 @@ fn void index_top_level(DeclTable* t, Ast* ast, TokenList* toks, NodeId root, Al
 			NodeId[] mkids = ast.children(c);
 			if (mkids.len && mkids[0] != parser::NONE)
 			{
-				cur_mod = path_text(toks, ast.node(mkids[0]), a);
+				// tmem: cur_mod only lives to be copied into each decl below,
+				// via index_decl's own mod.copy(a) -- it never needs to
+				// outlive index_file's @pool() itself.
+				cur_mod = path_text(toks, ast.node(mkids[0]), tmem);
 			}
 			continue;
 		}

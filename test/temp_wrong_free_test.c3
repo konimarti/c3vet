@@ -2,7 +2,6 @@ module c3vet::temp_wrong_free_test @test;
 
 import c3vet::testdata;
 import c3vet;
-import std::io;
 
 fn void test_temp_wrong_free()
 {

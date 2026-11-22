@@ -62,7 +62,10 @@ fn int main(String[] argv)
 
 	List{String} files;
 	files.init(mem);
-	defer files.free();
+	defer {
+		foreach (f : files) f.free(mem);
+		files.free();
+	};
 
 	if (!o.targets.len())
 	{
@@ -89,7 +92,10 @@ fn int main(String[] argv)
 
 	DiagnosticList diags;
 	diags.init(mem);
-	defer diags.free();
+	defer {
+		foreach (d : diags) d.msg.free(mem);
+		diags.free();
+	};
 
 	Ctx ctx = { .config = &cfg, .out = &diags };
 	ctx.reported.init(mem);
@@ -101,6 +107,7 @@ fn int main(String[] argv)
 	// declaration table is project-wide, so it must exist before the
 	// per-file loop below, not be built lazily inside it.
 	DeclTable table;
+	defer table.free();
 	if (c3vet::max_tier(enabled) >= Tier.PROJECT)
 	{
 		List{String} table_roots;

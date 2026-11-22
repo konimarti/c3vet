@@ -2,7 +2,6 @@
 module c3vet;
 
 import c3::parser;
-import c3::lexer;
 import std::core::mem::alloc;
 
 const Check SILENCED_FAULT = {
