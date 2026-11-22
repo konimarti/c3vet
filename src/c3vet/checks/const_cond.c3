@@ -1,8 +1,8 @@
 <* Flag conditions determined entirely by boolean or integer literals. *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::core::mem::alloc;
 
 const Check CONST_COND = {
@@ -45,11 +45,16 @@ fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 		}
 		default: return true;
 	}
-	if (condition == parser::NONE || !is_literal_condition(ast, w.unit.toks(), condition)) return true;
+	if (condition == parser::NONE
+		|| !is_literal_condition(ast, w.unit.toks(), condition))
+	{
+		return true;
+	}
 	// `while (true)`/`do { ... } while (true)` is the standard loop-forever,
 	// break-explicitly-inside idiom, not a forgotten toggle -- flagging it
 	// would fire on some of the most ordinary code in any codebase.
-	if ((kind == NodeKind.WHILE || kind == NodeKind.DO) && is_true_literal(ast, w.unit.toks(), condition))
+	if ((kind == NodeKind.WHILE || kind == NodeKind.DO) && is_true_literal(ast,
+		w.unit.toks(), condition))
 	{
 		return true;
 	}
@@ -58,8 +63,9 @@ fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 	return true;
 }
 
-fn bool is_true_literal(Ast* ast, TokenList* toks, NodeId id) @local
-	=> ast.kind(id) == NodeKind.BOOL_LIT && toks.text_at(ast.node(id).tok) == "true";
+fn bool is_true_literal(Ast* ast, TokenList* toks,
+	NodeId id) @local => ast.kind(id) == NodeKind.BOOL_LIT
+	&& toks.text_at(ast.node(id).tok) == "true";
 
 fn bool is_literal_condition(Ast* ast, TokenList* toks, NodeId id) @local
 {
@@ -67,11 +73,13 @@ fn bool is_literal_condition(Ast* ast, TokenList* toks, NodeId id) @local
 	if (kind == NodeKind.BOOL_LIT || kind == NodeKind.INT_LIT) return true;
 	if (kind != NodeKind.BINARY) return false;
 	TokenType op = toks.type_at(ast.node(id).tok);
-	if (op != LESS && op != GREATER && op != LESS_EQ && op != GREATER_EQ && op != EQEQ && op != NOT_EQUAL)
+	if (op != LESS && op != GREATER && op != LESS_EQ && op != GREATER_EQ
+		&& op != EQEQ && op != NOT_EQUAL)
 	{
 		return false;
 	}
-	return is_literal(ast, ast.node(id).lhs) && is_literal(ast, ast.node(id).rhs);
+	return is_literal(ast, ast.node(id).lhs) && is_literal(ast,
+		ast.node(id).rhs);
 }
 
 fn bool is_literal(Ast* ast, NodeId id) @local

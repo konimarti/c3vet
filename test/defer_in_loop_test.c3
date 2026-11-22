@@ -1,7 +1,7 @@
 module c3vet::defer_in_loop_test @test;
 
-import c3vet::testdata;
 import c3vet;
+import c3vet::testdata;
 
 fn void defer_in_loop()
 {

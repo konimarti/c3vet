@@ -1,8 +1,8 @@
 <* Report imports unused by qualified paths and unqualified exported names. *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
@@ -16,7 +16,11 @@ const Check UNUSED_IMPORT = {
 	.make_state    = &make_unused_import_state,
 };
 
-struct UnusedImportWalker { Ctx* ctx; Unit* unit; }
+struct UnusedImportWalker
+{
+	Ctx* ctx;
+	Unit* unit;
+}
 
 fn any make_unused_import_state(Ctx* ctx, Unit* u, Allocator a) @local
 	=> alloc::new(a, UnusedImportWalker, { .ctx = ctx, .unit = u });
@@ -41,18 +45,27 @@ fn bool visit_unused_import(Ast* ast, NodeId id, any context) @local
 		}
 		// With no usable table entries we cannot prove this import unused.
 		if (!known_exports) continue;
-		if (file_uses_import(ast, w.unit.toks(), mod, imported_as, names)) continue;
-		w.ctx.report(w.unit, id, UNUSED_IMPORT.name, "import '%s' is unused -- remove the import", mod);
+		if (file_uses_import(ast, w.unit.toks(), mod, imported_as, names))
+		{
+			continue;
+		}
+		w.ctx.report(w.unit, id, UNUSED_IMPORT.name,
+			"import '%s' is unused -- remove the import", mod);
 	}
 	return true;
 }
 
-fn bool file_uses_import(Ast* ast, TokenList* toks, String mod, String imported_as, String[] exports) @local
+fn bool file_uses_import(Ast* ast,
+	TokenList* toks, String mod, String imported_as, String[] exports) @local
 {
 	for (uint i = 0; i < toks.len(); i++)
 	{
 		if (is_module_or_import_token(ast, i)) continue;
-		if (tokens_have_module_prefix(toks, i, mod) || tokens_have_module_prefix(toks, i, imported_as)) return true;
+		if (tokens_have_module_prefix(toks, i, mod)
+			|| tokens_have_module_prefix(toks, i, imported_as))
+		{
+			return true;
+		}
 		if (i > 0 && toks.type_at(i - 1) == SCOPE) continue;
 		String name = toks.text_at(i);
 		foreach (exported : exports)
@@ -65,17 +78,22 @@ fn bool file_uses_import(Ast* ast, TokenList* toks, String mod, String imported_
 }
 
 <* True when a `@require`/`@ensure` contract uses the import. *>
-fn bool contract_trivia_uses_import(TokenList* toks, String mod, String imported_as, String[] exports) @local
+fn bool contract_trivia_uses_import(TokenList* toks,
+	String mod, String imported_as, String[] exports) @local
 {
 	foreach (t : toks.all)
 	{
 		if (t.type != CONTRACT || t.text.len < 4) continue;
-		if (contract_text_uses_import(t.text, mod, imported_as, exports)) return true;
+		if (contract_text_uses_import(t.text, mod, imported_as, exports))
+		{
+			return true;
+		}
 	}
 	return false;
 }
 
-fn bool contract_text_uses_import(String contract_text, String mod, String imported_as, String[] exports) @local
+fn bool contract_text_uses_import(String contract_text,
+	String mod, String imported_as, String[] exports) @local
 {
 	ContractLexer cl;
 	cl.init(contract_text);
@@ -91,7 +109,11 @@ fn bool contract_text_uses_import(String contract_text, String mod, String impor
 	for (usz i = 0; i < ctoks.len; i++)
 	{
 		if (ctoks[i].type == SCOPE) continue;
-		if (ctoks_have_module_prefix(ctoks, i, mod) || ctoks_have_module_prefix(ctoks, i, imported_as)) return true;
+		if (ctoks_have_module_prefix(ctoks, i, mod)
+			|| ctoks_have_module_prefix(ctoks, i, imported_as))
+		{
+			return true;
+		}
 		if (i > 0 && ctoks[i - 1].type == SCOPE) continue;
 		String name = ctoks[i].text;
 		foreach (exported : exports)
@@ -111,11 +133,21 @@ fn bool ctoks_have_module_prefix(Token[] toks, usz first, String mod) @local
 	while (offset < mod.len)
 	{
 		usz end = offset;
-		while (end + 1 < mod.len && (mod[end] != ':' || mod[end + 1] != ':')) end++;
+		while (end + 1 < mod.len && (mod[end] != ':' || mod[end + 1] != ':'))
+		{
+			end++;
+		}
 		usz segment_end = end + 1 < mod.len ? end : mod.len;
-		if (at >= toks.len || !ctok_matches_segment(toks[at].text, mod, offset, segment_end)) return false;
+		if (at >= toks.len
+			|| !ctok_matches_segment(toks[at].text, mod, offset, segment_end))
+		{
+			return false;
+		}
 		at++;
-		if (segment_end == mod.len) return at < toks.len && toks[at].type == SCOPE;
+		if (segment_end == mod.len)
+		{
+			return at < toks.len && toks[at].type == SCOPE;
+		}
 		if (at >= toks.len || toks[at].type != SCOPE) return false;
 		at++;
 		offset = segment_end + 2;
@@ -123,10 +155,14 @@ fn bool ctoks_have_module_prefix(Token[] toks, usz first, String mod) @local
 	return false;
 }
 
-fn bool ctok_matches_segment(String text, String whole, usz start, usz end) @local
+fn bool ctok_matches_segment(String text, String whole, usz start,
+	usz end) @local
 {
 	if (text.len != end - start) return false;
-	for (usz i = 0; i < text.len; i++) if (text[i] != whole[start + i]) return false;
+	for (usz i = 0; i < text.len; i++) if (text[i] != whole[start + i])
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -153,18 +189,29 @@ fn String path_text(Ast* ast, TokenList* toks, NodeId id) @local
 }
 
 <* Compare a token sequence to a module path; require the following scope operator. *>
-fn bool tokens_have_module_prefix(TokenList* toks, uint first, String mod) @local
+fn bool tokens_have_module_prefix(TokenList* toks,
+	uint first, String mod) @local
 {
 	usz offset = 0;
 	uint at = first;
 	while (offset < mod.len)
 	{
 		usz end = offset;
-		while (end + 1 < mod.len && (mod[end] != ':' || mod[end + 1] != ':')) end++;
+		while (end + 1 < mod.len && (mod[end] != ':' || mod[end + 1] != ':'))
+		{
+			end++;
+		}
 		usz segment_end = end + 1 < mod.len ? end : mod.len;
-		if (at >= toks.len() || !token_matches_segment(toks, at, mod, offset, segment_end)) return false;
+		if (at >= toks.len()
+			|| !token_matches_segment(toks, at, mod, offset, segment_end))
+		{
+			return false;
+		}
 		at++;
-		if (segment_end == mod.len) return at < toks.len() && toks.type_at(at) == SCOPE;
+		if (segment_end == mod.len)
+		{
+			return at < toks.len() && toks.type_at(at) == SCOPE;
+		}
 		if (toks.type_at(at) != SCOPE) return false;
 		at++;
 		offset = segment_end + 2;
@@ -172,10 +219,14 @@ fn bool tokens_have_module_prefix(TokenList* toks, uint first, String mod) @loca
 	return false;
 }
 
-fn bool token_matches_segment(TokenList* toks, uint tok, String whole, usz start, usz end) @local
+fn bool token_matches_segment(TokenList* toks, uint tok, String whole,
+	usz start, usz end) @local
 {
 	String text = toks.text_at(tok);
 	if (text.len != end - start) return false;
-	for (usz i = 0; i < text.len; i++) if (text[i] != whole[start + i]) return false;
+	for (usz i = 0; i < text.len; i++) if (text[i] != whole[start + i])
+	{
+		return false;
+	}
 	return true;
 }

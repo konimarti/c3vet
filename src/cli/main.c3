@@ -6,8 +6,8 @@
 *>
 module c3vet::cli;
 
-import c3vet;
 import c3::parser;
+import c3vet;
 import std::collections::list;
 import std::io;
 import std::sort;
@@ -38,9 +38,21 @@ fn int main(String[] argv)
 		io::eprintn(USAGE);
 		return EXIT_ERROR;
 	}
-	if (o.help) { io::printn(USAGE); return EXIT_CLEAN; }
-	if (o.version) { io::printfn("c3vet %s", VERSION); return EXIT_CLEAN; }
-	if (o.list_checks) { list_checks(); return EXIT_CLEAN; }
+	if (o.help)
+	{
+		io::printn(USAGE);
+		return EXIT_CLEAN;
+	}
+	if (o.version)
+	{
+		io::printfn("c3vet %s", VERSION);
+		return EXIT_CLEAN;
+	}
+	if (o.list_checks)
+	{
+		list_checks();
+		return EXIT_CLEAN;
+	}
 
 	// Reject names that match no check, rather than silently doing nothing.
 	foreach (n : cfg.enabled)
@@ -62,7 +74,8 @@ fn int main(String[] argv)
 
 	List{String} files;
 	files.init(mem);
-	defer {
+	defer
+	{
 		foreach (f : files) f.free(mem);
 		files.free();
 	};
@@ -92,7 +105,8 @@ fn int main(String[] argv)
 
 	DiagnosticList diags;
 	diags.init(mem);
-	defer {
+	defer
+	{
 		foreach (d : diags) d.msg.free(mem);
 		diags.free();
 	};
@@ -129,7 +143,8 @@ fn int main(String[] argv)
 		// doc comment for why (indexing all of it unconditionally cost over
 		// 100ms by itself, for a project with a single file).
 		String std_root = c3vet::find_stdlib_root(tmem);
-		c3vet::add_stdlib_declarations(&table, std_root, files.array_view(), mem);
+		c3vet::add_stdlib_declarations(&table, std_root, files.array_view(),
+			mem);
 		ctx.table = &table;
 	}
 

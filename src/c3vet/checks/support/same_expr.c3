@@ -15,8 +15,8 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 
 <*
  True when `a` and `b` are the same expression: equal kind and token text at
@@ -54,19 +54,28 @@ fn bool same_shape(Ast* ast, TokenList* toks, NodeId a, NodeId b)
 		return true;
 	}
 
-	if (na.lhs == parser::NONE && na.rhs == parser::NONE && nb.lhs == parser::NONE && nb.rhs == parser::NONE)
+	if (na.lhs == parser::NONE && na.rhs == parser::NONE
+		&& nb.lhs == parser::NONE && nb.rhs == parser::NONE)
 	{
 		// Leaf: compare the full span, so `os::POLLERR` != `os::POLLHUP`.
-		if (na.last_tok - na.first_tok != nb.last_tok - nb.first_tok) return false;
+		if (na.last_tok - na.first_tok != nb.last_tok - nb.first_tok)
+		{
+			return false;
+		}
 		for (uint i = 0; i <= na.last_tok - na.first_tok; i++)
 		{
-			if (toks.text_at(na.first_tok + i) != toks.text_at(nb.first_tok + i)) return false;
+			if (toks.text_at(na.first_tok + i)
+				!= toks.text_at(nb.first_tok + i))
+			{
+				return false;
+			}
 		}
 		return true;
 	}
 
 	if (toks.text_at(na.tok) != toks.text_at(nb.tok)) return false;
-	return same_shape(ast, toks, na.lhs, nb.lhs) && same_shape(ast, toks, na.rhs, nb.rhs);
+	return same_shape(ast, toks, na.lhs, nb.lhs) && same_shape(ast, toks,
+		na.rhs, nb.rhs);
 }
 
 <*
@@ -101,5 +110,6 @@ fn bool has_side_effect(Ast* ast, TokenList* toks, NodeId id) @local
 		}
 		return false;
 	}
-	return has_side_effect(ast, toks, n.lhs) || has_side_effect(ast, toks, n.rhs);
+	return has_side_effect(ast, toks, n.lhs)
+		|| has_side_effect(ast, toks, n.rhs);
 }

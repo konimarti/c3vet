@@ -6,14 +6,15 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
 const Check TEMP_TO_GLOBAL = {
 	.name          = "temp-to-global",
-	.doc           = "temp-allocated memory assigned to a global or thread-local variable",
+	.doc           =
+		"temp-allocated memory assigned to a global or thread-local variable",
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -72,7 +73,9 @@ fn bool visit_temp_to_global(Ast* ast, NodeId id, any ctx) @local
 			if (is_local_tlocal_or_static(ast, w.unit.toks(), d.decl))
 			{
 				tlocal_or_static_locals.push(d.name);
-				if (vn.rhs != parser::NONE && (is_temp_origin_init(ast, w.unit.toks(), vn.rhs) || is_temp_val_to_global(ast, w.unit.toks(), vn.rhs, &temp_locals)))
+				if (vn.rhs != parser::NONE && (is_temp_origin_init(ast,
+					w.unit.toks(), vn.rhs) || is_temp_val_to_global(ast,
+						w.unit.toks(), vn.rhs, &temp_locals)))
 				{
 					w.ctx.report(w.unit, d.decl, "temp-to-global",
 						"temp-allocated memory assigned to a global or thread-local variable -- allocate with a non-temp allocator; temp memory is reclaimed long before a global's lifetime ends");
@@ -81,17 +84,24 @@ fn bool visit_temp_to_global(Ast* ast, NodeId id, any ctx) @local
 		}
 	}
 
-	check_assignments_in_body(w, n.rhs, &temp_locals, &local_names, &tlocal_or_static_locals);
+	check_assignments_in_body(w, n.rhs, &temp_locals,
+		&local_names, &tlocal_or_static_locals);
 	return true;
 }
 
-fn void check_assignments_in_body(TempToGlobalWalker* w, NodeId id, List{String}* temp_locals, List{String}* local_names, List{String}* tlocal_or_static_locals) @local
+fn void check_assignments_in_body(TempToGlobalWalker* w, NodeId id,
+	List{String}* temp_locals, List{String}* local_names,
+	List{String}* tlocal_or_static_locals) @local
 {
 	if (id == parser::NONE) return;
 	Ast* ast = w.unit.ast();
 	Node* n = ast.node(id);
 
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 
 	// In an INIT_LIST, designated field initializers look like ASSIGN (.field = val). Skip them.
 	if (n.kind == NodeKind.INIT_LIST) return;
@@ -100,9 +110,11 @@ fn void check_assignments_in_body(TempToGlobalWalker* w, NodeId id, List{String}
 	{
 		NodeId lhs = n.lhs;
 		NodeId rhs = n.rhs;
-		if (rhs != parser::NONE && (is_temp_origin_init(ast, w.unit.toks(), rhs) || is_temp_val_to_global(ast, w.unit.toks(), rhs, temp_locals)))
+		if (rhs != parser::NONE && (is_temp_origin_init(ast, w.unit.toks(), rhs)
+			|| is_temp_val_to_global(ast, w.unit.toks(), rhs, temp_locals)))
 		{
-			if (is_target_global_or_tlocal(ast, w.unit.toks(), lhs, local_names, tlocal_or_static_locals))
+			if (is_target_global_or_tlocal(ast, w.unit.toks(), lhs, local_names,
+				tlocal_or_static_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-to-global",
 					"temp-allocated memory assigned to a global or thread-local variable -- allocate with a non-temp allocator; temp memory is reclaimed long before a global's lifetime ends");
@@ -112,12 +124,18 @@ fn void check_assignments_in_body(TempToGlobalWalker* w, NodeId id, List{String}
 
 	if (n.kind.is_list_bearing())
 	{
-		foreach (c : ast.children(id)) check_assignments_in_body(w, c, temp_locals, local_names, tlocal_or_static_locals);
+		foreach (c : ast.children(id))
+		{
+			check_assignments_in_body(w, c, temp_locals, local_names,
+				tlocal_or_static_locals);
+		}
 	}
 	else
 	{
-		check_assignments_in_body(w, n.lhs, temp_locals, local_names, tlocal_or_static_locals);
-		check_assignments_in_body(w, n.rhs, temp_locals, local_names, tlocal_or_static_locals);
+		check_assignments_in_body(w, n.lhs, temp_locals, local_names,
+			tlocal_or_static_locals);
+		check_assignments_in_body(w, n.rhs, temp_locals, local_names,
+			tlocal_or_static_locals);
 	}
 }
 
@@ -139,7 +157,8 @@ fn bool is_local_tlocal_or_static(Ast* ast, TokenList* toks, NodeId id) @local
 	return false;
 }
 
-fn bool is_target_global_or_tlocal(Ast* ast, TokenList* toks, NodeId target, List{String}* local_names, List{String}* tlocal_or_static_locals) @local
+fn bool is_target_global_or_tlocal(Ast* ast, TokenList* toks, NodeId target,
+	List{String}* local_names, List{String}* tlocal_or_static_locals) @local
 {
 	if (target == parser::NONE) return false;
 	NodeKind k = ast.kind(target);
@@ -165,7 +184,8 @@ fn bool is_target_global_or_tlocal(Ast* ast, TokenList* toks, NodeId target, Lis
 	return false;
 }
 
-fn bool is_temp_val_to_global(Ast* ast, TokenList* toks, NodeId val, List{String}* temp_locals) @local
+fn bool is_temp_val_to_global(Ast* ast, TokenList* toks,
+	NodeId val, List{String}* temp_locals) @local
 {
 	if (val == parser::NONE) return false;
 

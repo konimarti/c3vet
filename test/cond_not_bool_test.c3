@@ -1,7 +1,7 @@
 module c3vet::cond_not_bool_test @test;
 
-import c3vet::testdata;
 import c3vet;
+import c3vet::testdata;
 
 fn void cond_not_bool()
 {

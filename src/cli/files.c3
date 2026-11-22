@@ -14,8 +14,8 @@ fn bool is_source(String p)
 	=> p.ends_with(".c3") || p.ends_with(".c3i") || p.ends_with(".c3t");
 
 <* Directories that are never project sources. *>
-fn bool skipped_dir(String name)
-	=> name.starts_with(".") || name == "build" || name == "lib" || name == "out";
+fn bool skipped_dir(String name) => name.starts_with(".") || name == "build"
+	|| name == "lib" || name == "out";
 
 <*
  Add every source file under `target` to `out`.

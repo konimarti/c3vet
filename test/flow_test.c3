@@ -1,7 +1,7 @@
 module c3vet::flow_test @test;
 
-import c3vet;
 import c3::parser;
+import c3vet;
 
 fn void flow_is_read_true_and_false()
 {
@@ -12,11 +12,16 @@ fn void flow_is_read_true_and_false()
 `;
 	ParseResult r = parser::parse(tmem, src);
 	NodeId fn_decl = parser::NONE;
-	foreach (i, n : r.ast.nodes) if (n.kind == NodeKind.FN_DECL) fn_decl = (NodeId)i;
+	foreach (i, n : r.ast.nodes) if (n.kind == NodeKind.FN_DECL)
+	{
+		fn_decl = (NodeId)i;
+	}
 	NodeId body = r.ast.node(fn_decl).rhs;
 
-	assert(c3vet::is_read(&r.ast, &r.toks, body, "err"), "'err' is referenced in the if-condition");
-	assert(!c3vet::is_read(&r.ast, &r.toks, body, "nope"), "'nope' does not appear anywhere in the body");
+	assert(c3vet::is_read(&r.ast, &r.toks, body, "err"),
+		"'err' is referenced in the if-condition");
+	assert(!c3vet::is_read(&r.ast, &r.toks, body, "nope"),
+		"'nope' does not appear anywhere in the body");
 }
 
 fn void flow_is_read_counts_a_write_as_used()
@@ -31,7 +36,10 @@ fn void flow_is_read_counts_a_write_as_used()
 `;
 	ParseResult r = parser::parse(tmem, src);
 	NodeId fn_decl = parser::NONE;
-	foreach (i, n : r.ast.nodes) if (n.kind == NodeKind.FN_DECL) fn_decl = (NodeId)i;
+	foreach (i, n : r.ast.nodes) if (n.kind == NodeKind.FN_DECL)
+	{
+		fn_decl = (NodeId)i;
+	}
 	NodeId body = r.ast.node(fn_decl).rhs;
 
 	assert(c3vet::is_read(&r.ast, &r.toks, body, "err"));

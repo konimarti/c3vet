@@ -6,7 +6,8 @@ import std::core::mem::alloc;
 
 const Check CONST_NARROWING_OVERFLOW = {
 	.name          = "const-narrowing-overflow",
-	.doc           = "an integer literal is outside the range of its explicit cast type",
+	.doc           = "an integer literal is outside the "
+		"range of its explicit cast type",
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -27,18 +28,27 @@ fn bool visit_narrowing(Ast* ast, NodeId id, any context) @local
 {
 	NarrowingWalker* w = (NarrowingWalker*)context;
 	Node* cast = ast.node(id);
-	if (cast.kind != NodeKind.CAST || ast.kind(cast.rhs) != NodeKind.INT_LIT) return true;
+	if (cast.kind != NodeKind.CAST || ast.kind(cast.rhs) != NodeKind.INT_LIT)
+	{
+		return true;
+	}
 	String type_name;
 	bool is_signed;
-	uint bits = integer_type_width(ast, w.unit.toks(), cast.lhs, &type_name, &is_signed);
+	uint bits = integer_type_width(ast, w.unit.toks(), cast.lhs, &type_name,
+		&is_signed);
 	if (!bits) return true;
 	ulong value;
 	bool overflow;
-	if (!parse_integer_literal(w.unit.toks().text_at(ast.node(cast.rhs).tok), &value, &overflow)) return true;
+	if (!parse_integer_literal(w.unit.toks().text_at(ast.node(cast.rhs).tok),
+		&value, &overflow))
+	{
+		return true;
+	}
 	ulong max_value;
 	if (is_signed)
 	{
-		max_value = bits == 64 ? ulong::max >> 1 : (((ulong)1 << (bits - 1)) - 1);
+		max_value = bits == 64 ? ulong::max >> 1
+			: (((ulong)1 << (bits - 1)) - 1);
 	}
 	else
 	{
@@ -53,20 +63,29 @@ fn bool visit_narrowing(Ast* ast, NodeId id, any context) @local
 	return true;
 }
 
-fn uint integer_type_width(Ast* ast, TokenList* toks, NodeId type, String* name, bool* is_signed) @local
+fn uint integer_type_width(Ast* ast,
+	TokenList* toks, NodeId type, String* name, bool* is_signed) @local
 {
 	if (type == parser::NONE || ast.kind(type) != NodeKind.TYPE_BASE) return 0;
 	*name = toks.text_at(ast.node(type).tok);
 	switch (*name)
 	{
-		case "char": *is_signed = false; return 8;
-		case "ichar": *is_signed = true; return 8;
-		case "short": *is_signed = true; return 16;
-		case "ushort": *is_signed = false; return 16;
-		case "int": *is_signed = true; return 32;
-		case "uint": *is_signed = false; return 32;
-		case "long": *is_signed = true; return 64;
-		case "ulong": *is_signed = false; return 64;
+		case "char": *is_signed = false;
+			return 8;
+		case "ichar": *is_signed = true;
+			return 8;
+		case "short": *is_signed = true;
+			return 16;
+		case "ushort": *is_signed = false;
+			return 16;
+		case "int": *is_signed = true;
+			return 32;
+		case "uint": *is_signed = false;
+			return 32;
+		case "long": *is_signed = true;
+			return 64;
+		case "ulong": *is_signed = false;
+			return 64;
 		default: return 0;
 	}
 }
@@ -77,9 +96,21 @@ fn bool parse_integer_literal(String text, ulong* value, bool* overflow) @local
 	sz at = 0;
 	if (text.len >= 2 && text[0] == '0')
 	{
-		if (text[1] == 'x' || text[1] == 'X') { base = 16; at = 2; }
-		else if (text[1] == 'b' || text[1] == 'B') { base = 2; at = 2; }
-		else if (text[1] == 'o' || text[1] == 'O') { base = 8; at = 2; }
+		if (text[1] == 'x' || text[1] == 'X')
+		{
+			base = 16;
+			at = 2;
+		}
+		else if (text[1] == 'b' || text[1] == 'B')
+		{
+			base = 2;
+			at = 2;
+		}
+		else if (text[1] == 'o' || text[1] == 'O')
+		{
+			base = 8;
+			at = 2;
+		}
 	}
 	*value = 0;
 	*overflow = false;

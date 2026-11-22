@@ -13,7 +13,9 @@ import std::core::mem::alloc;
 
 const Check UNUSED_LABEL = {
 	.name          = "unused-label",
-	.doc           = "A declared label never targeted by a break/continue in the same function.",
+	.doc           =
+		"A declared label never targeted by a "
+		"break/continue in the same function.",
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -52,10 +54,15 @@ fn bool visit_unused_label(Ast* ast, NodeId id, any ctx) @local
 	foreach (l : labels)
 	{
 		bool used = false;
-		foreach (t : targets) if (t == l.name) { used = true; break; }
+		foreach (t : targets) if (t == l.name)
+		{
+			used = true;
+			break;
+		}
 		if (!used)
 		{
-			w.ctx.report(w.unit, l.node, "unused-label", "label '%s' is never used -- remove the label", l.name);
+			w.ctx.report(w.unit, l.node, "unused-label",
+				"label '%s' is never used -- remove the label", l.name);
 		}
 	}
 	return false;
@@ -63,7 +70,7 @@ fn bool visit_unused_label(Ast* ast, NodeId id, any ctx) @local
 
 <* Collects every LABEL declaration and every labelled break/continue target under `id`. *>
 fn void collect_labels_and_targets(Ast* ast, TokenList* toks, NodeId id,
-                                   List{LoopLabel}* labels, List{String}* targets) @local
+	List{LoopLabel}* labels, List{String}* targets) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
@@ -81,7 +88,10 @@ fn void collect_labels_and_targets(Ast* ast, TokenList* toks, NodeId id,
 
 	if (n.kind.is_list_bearing())
 	{
-		foreach (c : ast.children(id)) collect_labels_and_targets(ast, toks, c, labels, targets);
+		foreach (c : ast.children(id))
+		{
+			collect_labels_and_targets(ast, toks, c, labels, targets);
+		}
 		return;
 	}
 	collect_labels_and_targets(ast, toks, n.lhs, labels, targets);

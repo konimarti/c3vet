@@ -10,14 +10,16 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
 const Check LOOP_NO_ADVANCE = {
 	.name          = "loop-no-advance",
-	.doc           = "A for loop with no increment clause whose condition variables never change in the body.",
+	.doc           =
+		"A for loop with no increment clause whose "
+		"condition variables never change in the body.",
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -63,7 +65,8 @@ fn bool visit_loop_no_advance(Ast* ast, NodeId id, any ctx) @local
 }
 
 <* Every identifier name referenced anywhere in `id`'s subtree. *>
-fn void collect_idents(Ast* ast, TokenList* toks, NodeId id, List{String}* out) @local
+fn void collect_idents(Ast* ast, TokenList* toks, NodeId id,
+	List{String}* out) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
@@ -96,15 +99,20 @@ fn bool is_one_of(Ast* ast, TokenList* toks, NodeId id, String[] names) @local
  True when anywhere in `id`'s subtree, one of `names` is assigned,
  `++`/`--`'d, or address-taken.
 *>
-fn bool body_advances(Ast* ast, TokenList* toks, NodeId id, String[] names) @local
+fn bool body_advances(Ast* ast,
+	TokenList* toks, NodeId id, String[] names) @local
 {
 	if (id == parser::NONE) return false;
 	Node* n = ast.node(id);
-	if (n.kind == NodeKind.ASSIGN && is_one_of(ast, toks, n.lhs, names)) return true;
+	if (n.kind == NodeKind.ASSIGN && is_one_of(ast, toks, n.lhs, names))
+	{
+		return true;
+	}
 	if (n.kind == NodeKind.UNARY || n.kind == NodeKind.POSTFIX)
 	{
 		TokenType op = toks.type_at(n.tok);
-		if ((op == PLUSPLUS || op == MINUSMINUS || op == AMP) && is_one_of(ast, toks, n.lhs, names))
+		if ((op == PLUSPLUS || op == MINUSMINUS || op == AMP) && is_one_of(ast,
+			toks, n.lhs, names))
 		{
 			return true;
 		}
@@ -117,5 +125,6 @@ fn bool body_advances(Ast* ast, TokenList* toks, NodeId id, String[] names) @loc
 		}
 		return false;
 	}
-	return body_advances(ast, toks, n.lhs, names) || body_advances(ast, toks, n.rhs, names);
+	return body_advances(ast, toks, n.lhs, names)
+		|| body_advances(ast, toks, n.rhs, names);
 }

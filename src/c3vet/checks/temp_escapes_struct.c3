@@ -6,14 +6,15 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
 const Check TEMP_ESCAPES_STRUCT = {
 	.name          = "temp-escapes-struct",
-	.doc           = "temp-allocated memory stored into struct field and returned",
+	.doc           = "temp-allocated memory stored "
+		"into struct field and returned",
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -34,14 +35,20 @@ fn bool visit_temp_escapes_struct(Ast* ast, NodeId id, any ctx) @local
 {
 	TempEscapesStructWalker* w = (TempEscapesStructWalker*)ctx;
 	Node* n = ast.node(id);
-	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL) return true;
+	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL)
+	{
+		return true;
+	}
 
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
 	List{String} temp_locals;
 	temp_locals.tinit();
 	foreach (d : locals)
 	{
-		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL) continue;
+		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL)
+		{
+			continue;
+		}
 		Node* vn = ast.node(d.decl);
 		if (is_temp_origin_init(ast, w.unit.toks(), vn.rhs))
 		{
@@ -59,14 +66,18 @@ fn bool visit_temp_escapes_struct(Ast* ast, NodeId id, any ctx) @local
 }
 
 fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
-                             List{String}* returned_vars, List{String}* temp_locals) @local
+	List{String}* returned_vars, List{String}* temp_locals) @local
 {
 	if (id == parser::NONE) return;
 	Ast* ast = w.unit.ast();
 	TokenList* toks = w.unit.toks();
 	Node* n = ast.node(id);
 
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 
 	if (n.kind == NodeKind.RETURN)
 	{
@@ -75,7 +86,8 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 		{
 			// Direct return of struct literal containing temp memory:
 			NodeId peeled_lit = peel_casts(ast, val);
-			if (ast.kind(peeled_lit) == NodeKind.INIT_LIST && init_list_has_temp(ast, toks, peeled_lit, temp_locals))
+			if (ast.kind(peeled_lit) == NodeKind.INIT_LIST
+				&& init_list_has_temp(ast, toks, peeled_lit, temp_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-struct",
 					"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
@@ -83,7 +95,8 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 
 			// Return of local variable:
 			NodeId peeled_id = peel_expr(ast, toks, val);
-			if (peeled_id != parser::NONE && ast.kind(peeled_id) == NodeKind.IDENT)
+			if (peeled_id != parser::NONE
+				&& ast.kind(peeled_id) == NodeKind.IDENT)
 			{
 				returned_vars.push(toks.text_at(ast.node(peeled_id).tok));
 			}
@@ -93,7 +106,10 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 
 	if (n.kind.is_list_bearing())
 	{
-		foreach (c : ast.children(id)) collect_returned_vars(w, c, returned_vars, temp_locals);
+		foreach (c : ast.children(id))
+		{
+			collect_returned_vars(w, c, returned_vars, temp_locals);
+		}
 	}
 	else
 	{
@@ -103,14 +119,18 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 }
 
 fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
-                            List{String}* returned_vars, List{String}* temp_locals) @local
+	List{String}* returned_vars, List{String}* temp_locals) @local
 {
 	if (id == parser::NONE) return;
 	Ast* ast = w.unit.ast();
 	TokenList* toks = w.unit.toks();
 	Node* n = ast.node(id);
 
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 
 	if (n.kind == NodeKind.VAR_DECL)
 	{
@@ -118,7 +138,8 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 		if (is_in_list(var_name, returned_vars))
 		{
 			NodeId init_lit = peel_casts(ast, n.rhs);
-			if (ast.kind(init_lit) == NodeKind.INIT_LIST && init_list_has_temp(ast, toks, init_lit, temp_locals))
+			if (ast.kind(init_lit) == NodeKind.INIT_LIST
+				&& init_list_has_temp(ast, toks, init_lit, temp_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-struct",
 					"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
@@ -137,7 +158,8 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 			if (obj_id != parser::NONE && ast.kind(obj_id) == NodeKind.IDENT)
 			{
 				String obj_name = toks.text_at(ast.node(obj_id).tok);
-				if (is_in_list(obj_name, returned_vars) && struct_val_is_temp(ast, toks, val, temp_locals))
+				if (is_in_list(obj_name, returned_vars)
+					&& struct_val_is_temp(ast, toks, val, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-escapes-struct",
 						"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
@@ -151,7 +173,8 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 			if (is_in_list(obj_name, returned_vars))
 			{
 				NodeId init_lit = peel_casts(ast, val);
-				if (ast.kind(init_lit) == NodeKind.INIT_LIST && init_list_has_temp(ast, toks, init_lit, temp_locals))
+				if (ast.kind(init_lit) == NodeKind.INIT_LIST
+					&& init_list_has_temp(ast, toks, init_lit, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-escapes-struct",
 						"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
@@ -162,7 +185,10 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 
 	if (n.kind.is_list_bearing())
 	{
-		foreach (c : ast.children(id)) check_struct_escapes(w, c, returned_vars, temp_locals);
+		foreach (c : ast.children(id))
+		{
+			check_struct_escapes(w, c, returned_vars, temp_locals);
+		}
 	}
 	else
 	{
@@ -171,7 +197,8 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 	}
 }
 
-fn bool struct_val_is_temp(Ast* ast, TokenList* toks, NodeId val, List{String}* temp_locals) @local
+fn bool struct_val_is_temp(Ast* ast, TokenList* toks,
+	NodeId val, List{String}* temp_locals) @local
 {
 	if (val == parser::NONE) return false;
 	if (is_temp_origin_init(ast, toks, val)) return true;
@@ -185,9 +212,14 @@ fn bool struct_val_is_temp(Ast* ast, TokenList* toks, NodeId val, List{String}* 
 	return false;
 }
 
-fn bool init_list_has_temp(Ast* ast, TokenList* toks, NodeId init_list_id, List{String}* temp_locals) @local
+fn bool init_list_has_temp(Ast* ast,
+	TokenList* toks, NodeId init_list_id, List{String}* temp_locals) @local
 {
-	if (init_list_id == parser::NONE || ast.kind(init_list_id) != NodeKind.INIT_LIST) return false;
+	if (init_list_id == parser::NONE
+		|| ast.kind(init_list_id) != NodeKind.INIT_LIST)
+	{
+		return false;
+	}
 	foreach (elem : ast.children(init_list_id))
 	{
 		NodeId val = elem;
@@ -228,8 +260,14 @@ fn NodeId peel_expr(Ast* ast, TokenList* toks, NodeId id) @local
 		else if (cn.kind == NodeKind.UNARY)
 		{
 			TokenType tt = toks.type_at(cn.tok);
-			if (tt == AMP || tt == STAR) { cur = cn.lhs; }
-			else { break; }
+			if (tt == AMP || tt == STAR)
+			{
+				cur = cn.lhs;
+			}
+			else
+			{
+				break;
+			}
 		}
 		else
 		{

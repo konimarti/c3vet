@@ -1,9 +1,9 @@
 module c3vet::missing_format_attr_test;
 
+import c3::lexer;
+import c3::parser;
 import c3vet;
 import c3vet::testdata;
-import c3::parser;
-import c3::lexer;
 import std::collections::list;
 import std::io;
 
@@ -76,7 +76,8 @@ fn void test_missing_format_attr() @test
 	// Every want must be produced.
 	foreach (w : wants)
 	{
-		assert(w.matched, "line %d: wanted finding containing '%s', got none", w.ln, w.text);
+		assert(w.matched, "line %d: wanted finding containing '%s', got none",
+			w.ln, w.text);
 	}
 
 	// Measure over the c3c checkout
@@ -124,7 +125,8 @@ fn sz measure_corpus_with_table(DeclTable* table) @local
 				{
 					foreach (d : diags)
 					{
-						io::printfn("CORPUS FINDING: %s:%d: %s", f, d.ln, d.msg);
+						io::printfn("CORPUS FINDING: %s:%d: %s", f, d.ln,
+							d.msg);
 					}
 				}
 				total += diags.len();

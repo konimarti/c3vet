@@ -14,7 +14,11 @@ const Check UNUSED_TRY_BINDING = {
 	.make_state    = &make_unused_try_binding_state,
 };
 
-struct UnusedTryBindingWalker { Ctx* ctx; Unit* unit; }
+struct UnusedTryBindingWalker
+{
+	Ctx* ctx;
+	Unit* unit;
+}
 
 fn any make_unused_try_binding_state(Ctx* ctx, Unit* u, Allocator a) @local
 	=> alloc::new(a, UnusedTryBindingWalker, { .ctx = ctx, .unit = u });
@@ -32,18 +36,25 @@ fn bool visit_unused_try_binding(Ast* ast, NodeId id, any context) @local
 		binding = expression;
 		expression = ast.node(expression).rhs;
 	}
-	if (expression == parser::NONE || ast.kind(expression) != NodeKind.TRY_EXPR) return true;
+	if (expression == parser::NONE || ast.kind(expression) != NodeKind.TRY_EXPR)
+	{
+		return true;
+	}
 	if (binding == parser::NONE)
 	{
 		NodeId operand = ast.node(expression).lhs;
-		if (operand == parser::NONE || ast.kind(operand) != NodeKind.VAR_DECL) return true;
+		if (operand == parser::NONE || ast.kind(operand) != NodeKind.VAR_DECL)
+		{
+			return true;
+		}
 		binding = operand;
 	}
 	String name = w.unit.toks().text_at(ast.node(binding).tok);
 	if (!c3vet::is_read(ast, w.unit.toks(), kids[1], name))
 	{
 		w.ctx.report(w.unit, id, UNUSED_TRY_BINDING.name,
-			"try binding '%s' is never read in this branch -- use the binding, or drop it if the value isn't needed", name);
+			"try binding '%s' is never read in this branch -- use the binding, or drop it if the value isn't needed",
+			name);
 	}
 	return true;
 }

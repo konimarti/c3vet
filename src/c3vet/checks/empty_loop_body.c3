@@ -10,13 +10,14 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::core::mem::alloc;
 
 const Check EMPTY_LOOP_BODY = {
 	.name          = "empty-loop-body",
-	.doc           = "A loop whose body is empty and whose condition has no side effects.",
+	.doc           =
+		"A loop whose body is empty and whose condition has no side effects.",
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -64,7 +65,8 @@ fn bool visit_empty_loop_body(Ast* ast, NodeId id, any ctx) @local
 		default:
 			return true;
 	}
-	if (is_empty_block(ast, body) && !loop_has_side_effect(ast, w.unit.toks(), cond))
+	if (is_empty_block(ast, body) && !loop_has_side_effect(ast,
+		w.unit.toks(), cond))
 	{
 		w.ctx.report(w.unit, body, "empty-loop-body",
 			"empty loop body -- remove the loop, or add the work it's supposed to do");
@@ -108,5 +110,6 @@ fn bool loop_has_side_effect(Ast* ast, TokenList* toks, NodeId id) @local
 		}
 		return false;
 	}
-	return loop_has_side_effect(ast, toks, n.lhs) || loop_has_side_effect(ast, toks, n.rhs);
+	return loop_has_side_effect(ast, toks, n.lhs)
+		|| loop_has_side_effect(ast, toks, n.rhs);
 }

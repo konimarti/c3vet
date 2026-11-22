@@ -1,7 +1,7 @@
 module c3vet::unused_label_test @test;
 
-import c3vet::testdata;
 import c3vet;
+import c3vet::testdata;
 
 fn void unused_label()
 {

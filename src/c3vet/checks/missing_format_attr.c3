@@ -7,14 +7,16 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
 const Check MISSING_FORMAT_ATTR = {
 	.name          = "missing-format-attr",
-	.doc           = "function forwarding format string and varargs without @format attribute",
+	.doc           =
+		"function forwarding format string "
+		"and varargs without @format attribute",
 	.tier          = Tier.PROJECT,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -36,10 +38,16 @@ fn bool visit_missing_format_attr(Ast* ast, NodeId id, any ctx) @local
 	MissingFormatAttrWalker* w = (MissingFormatAttrWalker*)ctx;
 	if (!w.ctx.table) return true;
 	Node* n = ast.node(id);
-	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL) return true;
+	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL)
+	{
+		return true;
+	}
 
 	NodeId sig_id = n.lhs;
-	if (sig_id == parser::NONE || ast.kind(sig_id) != NodeKind.SIGNATURE) return true;
+	if (sig_id == parser::NONE || ast.kind(sig_id) != NodeKind.SIGNATURE)
+	{
+		return true;
+	}
 	if (has_format_attr(ast, w.unit.toks(), sig_id)) return true;
 
 	List{NodeId} params;
@@ -69,7 +77,8 @@ fn bool visit_missing_format_attr(Ast* ast, NodeId id, any ctx) @local
 		if (pkids.len && pkids[0] != parser::NONE)
 		{
 			Node* tn = ast.node(pkids[0]);
-			if (tn.kind == NodeKind.TYPE_NAME && w.unit.toks().text_at(tn.tok) == "String")
+			if (tn.kind == NodeKind.TYPE_NAME
+				&& w.unit.toks().text_at(tn.tok) == "String")
 			{
 				fmt_params.push(w.unit.toks().text_at(ast.node(p).tok));
 			}
@@ -90,7 +99,11 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 	Node* n = ast.node(id);
 
 	// Do not descend into nested functions, macros, or lambdas.
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 
 	if (n.kind == NodeKind.CALL)
 	{
@@ -101,13 +114,16 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 			if (callee_name.len)
 			{
 				String callee_mod = call_qualifier(ast, w.unit.toks(), kids[0]);
-				int fmt_idx = w.ctx.table.format_param_of(callee_mod, callee_name);
+				int fmt_idx =
+					w.ctx.table.format_param_of(callee_mod, callee_name);
 				if (fmt_idx >= 0 && (sz)(1 + fmt_idx) < kids.len)
 				{
 					NodeId fmt_arg = kids[1 + fmt_idx];
-					if (is_ident_in_list(ast, w.unit.toks(), fmt_arg, fmt_params))
+					if (is_ident_in_list(ast,
+						w.unit.toks(), fmt_arg, fmt_params))
 					{
-						if (call_forwards_varargs(ast, w.unit.toks(), kids[1..], varargs_name))
+						if (call_forwards_varargs(ast, w.unit.toks(), kids[1..],
+							varargs_name))
 						{
 							w.ctx.report(w.unit, fn_node, "missing-format-attr",
 								"forwards its format string to '%s' (which has @format(%d)) but has no @format itself -- add @format(%d) to this function too, so c3c checks its call sites as well",
@@ -132,7 +148,11 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 	else
 	{
 		check_body_calls(w, n.lhs, fn_node, fmt_params, varargs_name, reported);
-		if (!*reported) check_body_calls(w, n.rhs, fn_node, fmt_params, varargs_name, reported);
+		if (!*reported)
+		{
+			check_body_calls(w, n.rhs, fn_node,
+				fmt_params, varargs_name, reported);
+		}
 	}
 }
 
@@ -149,7 +169,10 @@ fn bool has_format_attr(Ast* ast, TokenList* toks, NodeId sig_id) @local
 
 fn bool is_varargs_param(Ast* ast, TokenList* toks, NodeId param_id) @local
 {
-	if (param_id == parser::NONE || ast.kind(param_id) != NodeKind.PARAM) return false;
+	if (param_id == parser::NONE || ast.kind(param_id) != NodeKind.PARAM)
+	{
+		return false;
+	}
 	Node* n = ast.node(param_id);
 	for (uint i = n.first_tok; i <= n.last_tok; i++)
 	{
@@ -158,7 +181,8 @@ fn bool is_varargs_param(Ast* ast, TokenList* toks, NodeId param_id) @local
 	return false;
 }
 
-fn bool is_ident_in_list(Ast* ast, TokenList* toks, NodeId id, List{String}* list) @local
+fn bool is_ident_in_list(Ast* ast, TokenList* toks, NodeId id,
+	List{String}* list) @local
 {
 	if (id == parser::NONE) return false;
 	Node* n = ast.node(id);
@@ -171,7 +195,8 @@ fn bool is_ident_in_list(Ast* ast, TokenList* toks, NodeId id, List{String}* lis
 	return false;
 }
 
-fn bool call_forwards_varargs(Ast* ast, TokenList* toks, NodeId[] args, String varargs_name) @local
+fn bool call_forwards_varargs(Ast* ast, TokenList* toks, NodeId[] args,
+	String varargs_name) @local
 {
 	foreach (arg : args)
 	{
@@ -194,7 +219,10 @@ fn String call_name(Ast* ast, TokenList* toks, NodeId id) @local
 {
 	if (id == parser::NONE) return "";
 	Node* n = ast.node(id);
-	if (n.kind == NodeKind.IDENT || n.kind == NodeKind.TYPE_NAME) return toks.text_at(n.tok);
+	if (n.kind == NodeKind.IDENT || n.kind == NodeKind.TYPE_NAME)
+	{
+		return toks.text_at(n.tok);
+	}
 	if (n.kind == NodeKind.MEMBER_ACCESS) return call_name(ast, toks, n.rhs);
 	if (n.kind == NodeKind.PATH) return toks.text_at(n.last_tok);
 	return "";
@@ -212,6 +240,9 @@ fn String call_qualifier(Ast* ast, TokenList* toks, NodeId id) @local
 	if (n.kind != NodeKind.PATH || n.last_tok < n.first_tok + 2) return "";
 	DString s;
 	s.tinit();
-	for (uint i = n.first_tok; i <= n.last_tok - 2; i++) s.append(toks.text_at(i));
+	for (uint i = n.first_tok; i <= n.last_tok - 2; i++)
+	{
+		s.append(toks.text_at(i));
+	}
 	return s.str_view();
 }

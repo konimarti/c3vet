@@ -13,11 +13,13 @@ struct Diagnostic
 {
 	String file;
 	<* 1-based, from the lexer's own token positions. *>
-	sz     ln, col;
+	sz     ln,
+	col;
 	<*
 	 Token span of the finding, as indices into the unit's `TokenList.code`.
 	*>
-	uint   first_tok, last_tok;
+	uint   first_tok,
+	last_tok;
 	<* The check that reported this, as the user sees it. *>
 	String check;
 	String msg;
@@ -30,8 +32,8 @@ alias DiagnosticList = List{Diagnostic};
 
    src/parse.c3:42:9: self-assignment of 'count' [self-assign]
 *>
-fn String Diagnostic.to_string(&self, Allocator a)
-	=> string::format(a, "%s:%d:%d: %s [%s]", self.file, self.ln, self.col, self.msg, self.check);
+fn String Diagnostic.to_string(&self, Allocator a) => string::format(a,
+	"%s:%d:%d: %s [%s]", self.file, self.ln, self.col, self.msg, self.check);
 
 <* Order findings by file, then position, so output is stable across runs. *>
 fn int cmp_diagnostic(Diagnostic a, Diagnostic b)

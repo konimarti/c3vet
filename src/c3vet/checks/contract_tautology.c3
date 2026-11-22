@@ -16,14 +16,15 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
 const Check CONTRACT_TAUTOLOGY = {
 	.name          = "contract-tautology",
-	.doc           = "a @require clause compares an expression to itself with ==",
+	.doc           = "a @require clause compares an "
+		"expression to itself with ==",
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -44,7 +45,10 @@ fn bool visit_contract_tautology(Ast* ast, NodeId id, any context) @local
 {
 	ContractTautologyWalker* w = (ContractTautologyWalker*)context;
 	Node* n = ast.node(id);
-	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL) return true;
+	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL)
+	{
+		return true;
+	}
 
 	TokenList* toks = w.unit.toks();
 	uint ct = toks.contract_before(n.first_tok);
@@ -87,12 +91,20 @@ fn bool contract_has_tautological_require(String contract_text) @local
 		sz eq_pos = clause_start;
 		bool found_eq = false;
 		bool bail = false;
-		while (j < toks.len && toks[j].type != AT_IDENT && toks[j].type != COLON && toks[j].type != EOL)
+		while (j < toks.len && toks[j].type != AT_IDENT && toks[j].type != COLON
+			&& toks[j].type != EOL)
 		{
 			if (toks[j].type == EQEQ)
 			{
-				if (found_eq) { bail = true; }
-				else { eq_pos = j; found_eq = true; }
+				if (found_eq)
+				{
+					bail = true;
+				}
+				else
+				{
+					eq_pos = j;
+					found_eq = true;
+				}
 			}
 			j++;
 		}

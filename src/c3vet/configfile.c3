@@ -11,12 +11,12 @@
 *>
 module c3vet;
 
+import std::collections::list;
+import std::collections::object;
+import std::encoding::json;
 import std::io;
 import std::io::file;
 import std::io::path;
-import std::encoding::json;
-import std::collections::object;
-import std::collections::list;
 
 <*
  Looks in `dir` for `.c3vet` or `project.json`'s "c3vet" key, and applies
@@ -59,7 +59,8 @@ fn void apply_config_object(Config* cfg, Object* obj) @local
 	if (try no_suppress) cfg.no_suppress = no_suppress;
 }
 
-fn void apply_name_array(List{String}* out, List{String}* opposite, Object* obj, String key) @local
+fn void apply_name_array(List{String}* out, List{String}* opposite, Object* obj,
+	String key) @local
 {
 	Object*? arr = obj.get(key);
 	if (catch arr) return;

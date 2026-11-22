@@ -6,13 +6,15 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::core::mem::alloc;
 
 const Check SELF_OP = {
 	.name          = "self-op",
-	.doc           = "self-operation: both operands are identical, always producing a constant",
+	.doc           =
+		"self-operation: both operands are "
+		"identical, always producing a constant",
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -50,7 +52,8 @@ fn bool visit_self_op(Ast* ast, NodeId id, any ctx) @local
 {
 	SelfOpWalker* w = (SelfOpWalker*)ctx;
 	Node* n = ast.node(id);
-	if (n.kind == NodeKind.BINARY && is_self_op_operator(w.unit.toks().type_at(n.tok))
+	if (n.kind == NodeKind.BINARY
+		&& is_self_op_operator(w.unit.toks().type_at(n.tok))
 		&& c3vet::same_expr(ast, w.unit.toks(), n.lhs, n.rhs))
 	{
 		w.ctx.report(w.unit, id, "self-op",

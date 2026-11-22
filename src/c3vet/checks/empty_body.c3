@@ -8,13 +8,14 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::core::mem::alloc;
 
 const Check EMPTY_BODY = {
 	.name          = "empty-body",
-	.doc           = "An if/while body that is an empty block with no comment inside.",
+	.doc           = "An if/while body that is an empty "
+		"block with no comment inside.",
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,

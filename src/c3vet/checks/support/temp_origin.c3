@@ -141,12 +141,19 @@ fn bool is_tmem_name(Ast* ast, TokenList* toks, NodeId id) @local
 *>
 fn bool is_temp_origin_call(Ast* ast, TokenList* toks, NodeId call_id)
 {
-	if (call_id == parser::NONE || ast.kind(call_id) != NodeKind.CALL) return false;
+	if (call_id == parser::NONE || ast.kind(call_id) != NodeKind.CALL)
+	{
+		return false;
+	}
 	NodeId[] kids = ast.children(call_id);
 	if (!kids.len) return false;
 	NodeId callee = kids[0];
 	String name = callee_name(ast, toks, callee);
-	if (name != "" && (is_mem_temp_alloc_name(name) || is_temp_wrapper_name(name))) return true;
+	if (name != ""
+		&& (is_mem_temp_alloc_name(name) || is_temp_wrapper_name(name)))
+	{
+		return true;
+	}
 	foreach (arg : kids[1..]) if (is_tmem_name(ast, toks, arg)) return true;
 	return false;
 }

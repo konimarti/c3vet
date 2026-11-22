@@ -6,11 +6,11 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
-import std::io;
 import std::core::mem::alloc;
+import std::io;
 
 const Check TEMP_ESCAPES_FN = {
 	.name          = "temp-escapes-fn",
@@ -42,7 +42,10 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 	temp_locals.tinit();
 	foreach (d : locals)
 	{
-		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL) continue;
+		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL)
+		{
+			continue;
+		}
 		Node* vn = ast.node(d.decl);
 		if (is_temp_origin_init(ast, w.unit.toks(), vn.rhs))
 		{
@@ -54,18 +57,24 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 	return true;
 }
 
-fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id, List{String}* temp_locals) @local
+fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,
+	List{String}* temp_locals) @local
 {
 	if (id == parser::NONE) return;
 	Ast* ast = w.unit.ast();
 	Node* n = ast.node(id);
 
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 
 	if (n.kind == NodeKind.RETURN)
 	{
 		NodeId val = n.lhs;
-		if (val != parser::NONE && is_temp_val(ast, w.unit.toks(), val, temp_locals))
+		if (val != parser::NONE && is_temp_val(ast, w.unit.toks(), val,
+			temp_locals))
 		{
 			w.ctx.report(w.unit, id, "temp-escapes-fn",
 				"temp-allocated memory returned from a function -- allocate with a non-temp allocator if the value must outlive this call");
@@ -85,7 +94,8 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id, List{String}* t
 }
 
 <* True when `val` resolves to a temp-origin local. *>
-fn bool is_temp_val(Ast* ast, TokenList* toks, NodeId val, List{String}* temp_locals) @local
+fn bool is_temp_val(Ast* ast, TokenList* toks,
+	NodeId val, List{String}* temp_locals) @local
 {
 	if (val == parser::NONE) return false;
 

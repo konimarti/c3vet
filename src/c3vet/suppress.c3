@@ -14,8 +14,8 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 
 const String MARK      = "c3vet:ignore";
@@ -70,7 +70,7 @@ fn String bracket_list(String rest) @local
 	if (open < 0) return "";
 	sz close = rest.index_of_char(']') ?? -1;
 	if (close <= open + 1) return "";
-	return rest[(usz)open + 1 .. (usz)close - 1];
+	return rest[(usz)open + 1..(usz)close - 1];
 }
 
 <* True when `check` is named in a suppression's list, or the list is empty. *>
@@ -78,7 +78,10 @@ fn bool Suppression.covers(&self, String check)
 {
 	if (!self.checks.len) return true;
 	// Whole names only, so "self-assign" is not matched by "assign".
-	foreach (name : split_names(tmem, self.checks)) if (name == check) return true;
+	foreach (name : split_names(tmem, self.checks)) if (name == check)
+	{
+		return true;
+	}
 	return false;
 }
 

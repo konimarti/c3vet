@@ -3,11 +3,11 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
-import std::io;
 import std::core::mem::alloc;
+import std::io;
 
 <*
  How much analysis a check needs. The engine builds only the layers that
@@ -100,10 +100,12 @@ struct Check
  Every check goes through here, so no check formats its own location, and
  suppression and reported-scope filtering happen in exactly one place.
 *>
-fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, args...) @format(4)
+fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt,
+	args...) @format(4)
 {
 	Node* n = u.ast().node(node);
-	self.emit(u, n.first_tok, n.last_tok, check, string::format(self.out.allocator, fmt, ...args));
+	self.emit(u, n.first_tok, n.last_tok, check,
+		string::format(self.out.allocator, fmt, ...args));
 }
 
 <*
@@ -116,7 +118,8 @@ fn void Ctx.report(&self, Unit* u, NodeId node, String check, String fmt, args..
 fn void Ctx.report_at_token(&self, Unit* u, uint first_tok, uint last_tok,
                             String check, String fmt, args...) @format(5)
 {
-	self.emit(u, first_tok, last_tok, check, string::format(self.out.allocator, fmt, ...args));
+	self.emit(u, first_tok, last_tok, check,
+		string::format(self.out.allocator, fmt, ...args));
 }
 
 <*
@@ -125,7 +128,8 @@ fn void Ctx.report_at_token(&self, Unit* u, uint first_tok, uint last_tok,
  Scope filtering and suppression live here and nowhere else, so a check
  cannot leak a dependency-scope diagnostic by forgetting to guard.
 *>
-fn void Ctx.emit(&self, Unit* u, uint first_tok, uint last_tok, String check, String msg)
+fn void Ctx.emit(&self, Unit* u, uint first_tok, uint last_tok, String check,
+	String msg)
 {
 	// `msg` arrives already allocated (Ctx.report/report_at_token format it
 	// before calling emit): every path below either keeps it in self.out or
@@ -229,7 +233,8 @@ fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 	{
 		// tmem, not ctx.out.allocator: both are rebuilt fresh per Unit inside
 		// vet_file's own @pool(), so nothing about them needs to outlive it.
-		u.scopes = alloc::new(tmem, Scopes, build_scopes(u.ast(), u.toks(), tmem));
+		u.scopes = alloc::new(tmem, Scopes,
+			build_scopes(u.ast(), u.toks(), tmem));
 		u.flow = alloc::new(tmem, Flow, build_flow(u.ast(), u.toks(), tmem));
 	}
 
@@ -242,7 +247,10 @@ fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 		if (c.skip_on_error && u.has_errors()) continue;
 		if (c.visit && c.make_state)
 		{
-			walk_state.active.push({ .visit = c.visit, .state = c.make_state(ctx, u, a) });
+			walk_state.active.push({
+				.visit = c.visit,
+				.state = c.make_state(ctx, u, a)
+			});
 		}
 		else
 		{

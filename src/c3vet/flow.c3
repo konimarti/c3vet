@@ -13,7 +13,10 @@ struct Flow
 	bool built;
 }
 
-fn Flow build_flow(Ast* ast, TokenList* toks, Allocator a) => (Flow){ .built = true };
+fn Flow build_flow(Ast* ast, TokenList* toks, Allocator a) => (Flow){
+	.built =
+			true
+};
 
 <*
  True when some `IDENT` spelling `name` is reachable anywhere in `id`'s
@@ -30,7 +33,10 @@ fn bool is_read(Ast* ast, TokenList* toks, NodeId id, String name)
 	if (n.kind == NodeKind.IDENT && toks.text_at(n.tok) == name) return true;
 	if (n.kind.is_list_bearing())
 	{
-		foreach (c : ast.children(id)) if (is_read(ast, toks, c, name)) return true;
+		foreach (c : ast.children(id)) if (is_read(ast, toks, c, name))
+		{
+			return true;
+		}
 		return false;
 	}
 	return is_read(ast, toks, n.lhs, name) || is_read(ast, toks, n.rhs, name);

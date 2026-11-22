@@ -51,13 +51,42 @@ fn Options parse_args(Allocator a, String[] argv, Config* cfg)
 	o.init(a);
 	foreach (arg : argv)
 	{
-		if (arg == "-h" || arg == "--help") { o.help = true; continue; }
-		if (arg == "-V" || arg == "--version") { o.version = true; continue; }
-		if (arg == "--list-checks") { o.list_checks = true; continue; }
-		if (arg == "--no-suppress") { o.no_suppress = true; cfg.no_suppress = true; continue; }
-		if (arg == "--enable-all") { cfg.enable_all = true; continue; }
-		if (arg.starts_with("--enable=")) { add_names(&cfg.enabled, &cfg.disabled, arg["--enable=".len..]); continue; }
-		if (arg.starts_with("--disable=")) { add_names(&cfg.disabled, &cfg.enabled, arg["--disable=".len..]); continue; }
+		if (arg == "-h" || arg == "--help")
+		{
+			o.help = true;
+			continue;
+		}
+		if (arg == "-V" || arg == "--version")
+		{
+			o.version = true;
+			continue;
+		}
+		if (arg == "--list-checks")
+		{
+			o.list_checks = true;
+			continue;
+		}
+		if (arg == "--no-suppress")
+		{
+			o.no_suppress = true;
+			cfg.no_suppress = true;
+			continue;
+		}
+		if (arg == "--enable-all")
+		{
+			cfg.enable_all = true;
+			continue;
+		}
+		if (arg.starts_with("--enable="))
+		{
+			add_names(&cfg.enabled, &cfg.disabled, arg["--enable=".len..]);
+			continue;
+		}
+		if (arg.starts_with("--disable="))
+		{
+			add_names(&cfg.disabled, &cfg.enabled, arg["--disable=".len..]);
+			continue;
+		}
 		if (arg.starts_with("-"))
 		{
 			o.bad = true;

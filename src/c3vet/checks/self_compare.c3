@@ -7,13 +7,14 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::core::mem::alloc;
 
 const Check SELF_COMPARE = {
 	.name          = "self-compare",
-	.doc           = "self-comparison: both sides of the comparison are identical",
+	.doc           = "self-comparison: both sides of "
+		"the comparison are identical",
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,

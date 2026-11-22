@@ -15,10 +15,10 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
-import std::collections::list;
+import c3::parser;
 import libc;
+import std::collections::list;
 import std::core::dstring;
 import std::core::string;
 import std::io;
@@ -158,7 +158,8 @@ fn bool module_qualifier_matches(String mod, String qualifier) @local
 	if (mod == qualifier) return true;
 	if (!mod.ends_with(qualifier)) return false;
 	usz prefix_len = mod.len - qualifier.len;
-	return prefix_len >= 2 && mod[prefix_len - 1] == ':' && mod[prefix_len - 2] == ':';
+	return prefix_len >= 2
+		&& mod[prefix_len - 1] == ':' && mod[prefix_len - 2] == ':';
 }
 
 <*
@@ -181,7 +182,8 @@ fn void build_table(DeclTable* t, String[] roots, Allocator a)
  import -- by any file in `project_files`. A submodule matches its import prefix ("import std::net" covers
  "std::net::tcp").
 *>
-fn void add_stdlib_declarations(DeclTable* t, String stdlib_root, String[] project_files, Allocator a)
+fn void add_stdlib_declarations(DeclTable* t, String stdlib_root,
+	String[] project_files, Allocator a)
 {
 	if (!stdlib_root.len) return;
 
@@ -201,7 +203,11 @@ fn void add_stdlib_declarations(DeclTable* t, String stdlib_root, String[] proje
 		bool relevant = false;
 		foreach (n : needed)
 		{
-			if (module_matches(mod, n)) { relevant = true; break; }
+			if (module_matches(mod, n))
+			{
+				relevant = true;
+				break;
+			}
 		}
 		if (relevant) index_file(t, f, a);
 	}
@@ -278,7 +284,10 @@ fn bool walk_dir_indexed(List{String}* out, String dir) @local
 		String full = string::tformat("%s/%s", dir, name);
 		if (file::is_dir(full))
 		{
-			if (name.starts_with(".") || name == "build" || name == "out") continue;
+			if (name.starts_with(".") || name == "build" || name == "out")
+			{
+				continue;
+			}
 			walk_dir_indexed(out, full);
 			continue;
 		}
@@ -287,7 +296,8 @@ fn bool walk_dir_indexed(List{String}* out, String dir) @local
 	return true;
 }
 
-fn bool is_indexable(String p) @local => p.ends_with(".c3") || p.ends_with(".c3i");
+fn bool is_indexable(String p) @local => p.ends_with(".c3")
+	|| p.ends_with(".c3i");
 
 <*
  Index one file: parse it transiently, walk its top-level declarations
@@ -345,7 +355,8 @@ fn String strip_bodies(String src, Allocator a) @local
 	return buf;
 }
 
-fn void index_top_level(DeclTable* t, Ast* ast, TokenList* toks, NodeId root, Allocator a) @local
+fn void index_top_level(DeclTable* t, Ast* ast, TokenList* toks, NodeId root,
+	Allocator a) @local
 {
 	if (root == parser::NONE) return;
 	String cur_mod = "";
@@ -364,20 +375,25 @@ fn void index_top_level(DeclTable* t, Ast* ast, TokenList* toks, NodeId root, Al
 			}
 			continue;
 		}
-		if (n.kind == NodeKind.IMPORT || n.kind == NodeKind.ERROR_DECL) continue;
+		if (n.kind == NodeKind.IMPORT || n.kind == NodeKind.ERROR_DECL)
+		{
+			continue;
+		}
 		if (!n.kind.is_decl()) continue;
 		index_decl(t, ast, toks, c, cur_mod, a);
 	}
 }
 
-fn void index_decl(DeclTable* t, Ast* ast, TokenList* toks, NodeId id, String mod, Allocator a) @local
+fn void index_decl(DeclTable* t, Ast* ast, TokenList* toks, NodeId id,
+	String mod, Allocator a) @local
 {
 	Node* n = ast.node(id);
 	String name = toks.text_at(n.tok);
 	if (!name.len || name[0] == '@') return;
 
 	NodeId attr_scope = id;
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.ATTRMACRO_DECL)
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.ATTRMACRO_DECL)
 	{
 		attr_scope = n.lhs;
 	}
@@ -390,14 +406,22 @@ fn void index_decl(DeclTable* t, Ast* ast, TokenList* toks, NodeId id, String mo
 		{
 			if (c == parser::NONE || ast.kind(c) != NodeKind.ATTR) continue;
 			String attr_name = toks.text_at(ast.node(c).tok);
-			if (attr_name == "@private") { vis = DeclVis.PRIVATE; }
-			else if (attr_name == "@local") { vis = DeclVis.LOCAL; }
+			if (attr_name == "@private")
+			{
+				vis = DeclVis.PRIVATE;
+			}
+			else if (attr_name == "@local")
+			{
+				vis = DeclVis.LOCAL;
+			}
 			else if (attr_name == "@format")
 			{
 				NodeId[] akids = ast.children(c);
-				if (akids.len >= 2 && akids[1] != parser::NONE && ast.kind(akids[1]) == NodeKind.INT_LIT)
+				if (akids.len >= 2 && akids[1] != parser::NONE
+					&& ast.kind(akids[1]) == NodeKind.INT_LIT)
 				{
-					format_param = string::to_integer{int}(toks.text_at(ast.node(akids[1]).tok)) ?? -1;
+					format_param = string::to_integer{int}(
+						toks.text_at(ast.node(akids[1]).tok)) ?? -1;
 				}
 			}
 		}
@@ -449,16 +473,24 @@ fn String find_stdlib_root(Allocator a)
 }
 
 <* `find_stdlib_root` on an explicit `PATH` value, separator and binary name, so the Windows form can be tested anywhere. *>
-fn String find_stdlib_in_path(String path_env, String sep, String bin, Allocator a)
+fn String find_stdlib_in_path(String path_env,
+	String sep, String bin, Allocator a)
 {
 	foreach (dir : path_env.tsplit(sep))
 	{
 		if (!dir.len) continue;
 		String candidate = string::tformat("%s/%s", dir, bin);
-		if (!path::exists(path::tnew(candidate) ?? (Path){}) || file::is_dir(candidate)) continue;
+		if (!path::exists(path::tnew(candidate) ?? (Path){})
+			|| file::is_dir(candidate))
+		{
+			continue;
+		}
 		String real_dir = dir_of(resolve_links(candidate));
 		String sibling_std = string::format(a, "%s/lib/std", real_dir);
-		if (path::exists(path::tnew(sibling_std) ?? (Path){})) return sibling_std;
+		if (path::exists(path::tnew(sibling_std) ?? (Path){}))
+		{
+			return sibling_std;
+		}
 		String std = string::format(a, "%s/../lib/c3/std", real_dir);
 		if (path::exists(path::tnew(std) ?? (Path){})) return std;
 	}
@@ -485,7 +517,8 @@ fn String resolve_links(String p) @local
 			sz n = libc::readlink(p.zstr_tcopy(), &buf, buf.len);
 			if (n <= 0 || n >= buf.len) break;
 			String target = (String)buf[:n];
-			p = target[0] == '/' ? target.tcopy() : string::tformat("%s/%s", dir_of(p), target);
+			p = target[0] == '/' ? target.tcopy()
+				: string::tformat("%s/%s", dir_of(p), target);
 		}
 	$endif
 	return p;

@@ -11,7 +11,9 @@ import std::core::mem::alloc;
 
 const Check COND_NOT_BOOL = {
 	.name          = "cond-not-bool",
-	.doc           = "if/while condition is a bare integer- or pointer-declared variable, not a boolean",
+	.doc           =
+		"if/while condition is a bare integer- or "
+		"pointer-declared variable, not a boolean",
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -26,8 +28,9 @@ struct CondNotBoolWalker
 	NodeId current_fn;
 }
 
-fn any make_cond_not_bool_state(Ctx* ctx, Unit* u, Allocator a) @local
-	=> alloc::new(a, CondNotBoolWalker, { .ctx = ctx, .unit = u, .current_fn = parser::NONE });
+fn any make_cond_not_bool_state(Ctx* ctx, Unit* u,
+	Allocator a) @local => alloc::new(a, CondNotBoolWalker,
+		{ .ctx = ctx, .unit = u, .current_fn = parser::NONE });
 
 fn bool visit_cond_not_bool(Ast* ast, NodeId id, any context) @local
 {
@@ -67,7 +70,8 @@ fn void check_condition(Ast* ast, CondNotBoolWalker* w, NodeId cond) @local
 	if (ast.kind(type) == NodeKind.TYPE_PTR)
 	{
 		w.ctx.report(w.unit, cond, "cond-not-bool",
-			"condition '%s' is a pointer, not a boolean expression -- compare it explicitly against null instead", name);
+			"condition '%s' is a pointer, not a boolean expression -- compare it explicitly against null instead",
+			name);
 	}
 	else if (is_integer_type(ast, toks, type))
 	{
@@ -79,7 +83,10 @@ fn void check_condition(Ast* ast, CondNotBoolWalker* w, NodeId cond) @local
 
 fn bool is_integer_type(Ast* ast, TokenList* toks, NodeId type) @local
 {
-	if (type == parser::NONE || ast.kind(type) != NodeKind.TYPE_BASE) return false;
+	if (type == parser::NONE || ast.kind(type) != NodeKind.TYPE_BASE)
+	{
+		return false;
+	}
 	switch (toks.text_at(ast.node(type).tok))
 	{
 		case "char":

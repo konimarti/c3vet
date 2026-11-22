@@ -26,9 +26,9 @@
 *>
 module c3vet::testdata;
 
-import c3vet;
-import c3::parser;
 import c3::lexer;
+import c3::parser;
+import c3vet;
 import std::collections::list;
 import std::io;
 import std::io::path;
@@ -98,12 +98,14 @@ fn void verify_check(Check only, String path)
 			ok = true;
 			break;
 		}
-		assert(ok, "%s:%d: unexpected finding '%s' (no matching want)", path, d.ln, d.msg);
+		assert(ok, "%s:%d: unexpected finding '%s' (no matching want)", path,
+			d.ln, d.msg);
 	}
 	// Every want must be produced.
 	foreach (w : wants)
 	{
-		assert(w.matched, "%s:%d: wanted a finding containing '%s', got none", path, w.ln, w.text);
+		assert(w.matched, "%s:%d: wanted a finding containing '%s', got none",
+			path, w.ln, w.text);
 	}
 }
 
@@ -191,7 +193,8 @@ fn sz measure_fp_check(Check check)
  The sibling c3c checkout used for the FP sweep above, found via
  C3C_CHECKOUT (default: /home/km/Documents/c3c).
 *>
-fn String checkout_dir() => env::tget_var("C3C_CHECKOUT") ?? "/home/km/Documents/c3c";
+fn String checkout_dir() => env::tget_var("C3C_CHECKOUT")
+	?? "/home/km/Documents/c3c";
 
 <* Every *.c3 and *.c3i file under `dir`, recursively. Result in temp memory. *>
 fn String[] find_c3_files(String dir)

@@ -1,14 +1,15 @@
 <* Find integer-literal division whose result is used as a floating value. *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
 const Check CONST_INT_DIV_TO_FLOAT = {
 	.name          = "const-int-div-to-float",
-	.doc           = "integer division of literals is converted to a floating value",
+	.doc           = "integer division of literals is "
+		"converted to a floating value",
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -25,7 +26,8 @@ struct ConstIntDivWalker
 
 fn any make_const_int_div_state(Ctx* ctx, Unit* u, Allocator a) @local
 {
-	ConstIntDivWalker* w = alloc::new(a, ConstIntDivWalker, { .ctx = ctx, .unit = u });
+	ConstIntDivWalker* w =
+		alloc::new(a, ConstIntDivWalker, { .ctx = ctx, .unit = u });
 	w.reported.init(a);
 	return w;
 }
@@ -34,7 +36,8 @@ fn bool visit_const_int_div(Ast* ast, NodeId id, any context) @local
 {
 	ConstIntDivWalker* w = (ConstIntDivWalker*)context;
 	Node* n = ast.node(id);
-	if ((n.kind == NodeKind.VAR_DECL || n.kind == NodeKind.CAST) && is_float_type(ast, w.unit.toks(), n.lhs))
+	if ((n.kind == NodeKind.VAR_DECL || n.kind == NodeKind.CAST)
+		&& is_float_type(ast, w.unit.toks(), n.lhs))
 	{
 		find_float_divisions(ast, w.unit.toks(), n.rhs, w);
 	}
@@ -58,27 +61,35 @@ fn bool visit_const_int_div(Ast* ast, NodeId id, any context) @local
 
 fn bool is_float_type(Ast* ast, TokenList* toks, NodeId type) @local
 {
-	if (type == parser::NONE || ast.kind(type) != NodeKind.TYPE_BASE) return false;
+	if (type == parser::NONE || ast.kind(type) != NodeKind.TYPE_BASE)
+	{
+		return false;
+	}
 	String name = toks.text_at(ast.node(type).tok);
-	return name == "float" || name == "double" || name == "float16" || name == "bfloat" || name == "float128";
+	return name == "float" || name == "double" || name == "float16"
+		|| name == "bfloat" || name == "float128";
 }
 
-fn void find_float_divisions(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWalker* w) @local
+fn void find_float_divisions(Ast* ast,
+	TokenList* toks, NodeId id, ConstIntDivWalker* w) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
 	if (n.kind == NodeKind.CAST)
 	{
-		if (is_float_type(ast, toks, n.lhs)) find_float_divisions(ast, toks, n.rhs, w);
+		if (is_float_type(ast, toks, n.lhs))
+		{
+			find_float_divisions(ast, toks, n.rhs, w);
+		}
 		return;
 	}
 	if (n.kind == NodeKind.CALL)
 	{
 		return;
 	}
-	if (n.kind == NodeKind.BINARY && toks.type_at(n.tok) == DIV &&
-		ast.kind(n.lhs) == NodeKind.INT_LIT && ast.kind(n.rhs) == NodeKind.INT_LIT &&
-		!contains_node(&w.reported, id))
+	if (n.kind == NodeKind.BINARY && toks.type_at(n.tok) == DIV
+		&& ast.kind(n.lhs) == NodeKind.INT_LIT && ast.kind(n.rhs)
+		== NodeKind.INT_LIT && !contains_node(&w.reported, id))
 	{
 		w.reported.push(id);
 		w.ctx.report(w.unit, id, CONST_INT_DIV_TO_FLOAT.name,
@@ -86,7 +97,10 @@ fn void find_float_divisions(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWa
 	}
 	if (n.kind.is_list_bearing())
 	{
-		foreach (child : ast.children(id)) find_float_divisions(ast, toks, child, w);
+		foreach (child : ast.children(id))
+		{
+			find_float_divisions(ast, toks, child, w);
+		}
 	}
 	else
 	{
@@ -95,7 +109,8 @@ fn void find_float_divisions(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWa
 	}
 }
 
-fn void find_float_returns(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWalker* w) @local
+fn void find_float_returns(Ast* ast,
+	TokenList* toks, NodeId id, ConstIntDivWalker* w) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
@@ -107,7 +122,10 @@ fn void find_float_returns(Ast* ast, TokenList* toks, NodeId id, ConstIntDivWalk
 	}
 	if (n.kind.is_list_bearing())
 	{
-		foreach (child : ast.children(id)) find_float_returns(ast, toks, child, w);
+		foreach (child : ast.children(id))
+		{
+			find_float_returns(ast, toks, child, w);
+		}
 	}
 	else
 	{

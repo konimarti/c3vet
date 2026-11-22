@@ -6,8 +6,8 @@
 *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
 
@@ -41,7 +41,10 @@ fn bool visit_temp_wrong_free(Ast* ast, NodeId id, any ctx) @local
 	temp_locals.tinit();
 	foreach (d : locals)
 	{
-		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL) continue;
+		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL)
+		{
+			continue;
+		}
 		Node* vn = ast.node(d.decl);
 		if (is_temp_origin_init(ast, w.unit.toks(), vn.rhs))
 		{
@@ -53,13 +56,18 @@ fn bool visit_temp_wrong_free(Ast* ast, NodeId id, any ctx) @local
 	return true;
 }
 
-fn void check_frees_in_body(TempWrongFreeWalker* w, NodeId id, List{String}* temp_locals) @local
+fn void check_frees_in_body(TempWrongFreeWalker* w, NodeId id,
+	List{String}* temp_locals) @local
 {
 	if (id == parser::NONE) return;
 	Ast* ast = w.unit.ast();
 	Node* n = ast.node(id);
 
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 
 	if (n.kind == NodeKind.CALL)
 	{
@@ -70,7 +78,9 @@ fn void check_frees_in_body(TempWrongFreeWalker* w, NodeId id, List{String}* tem
 			if (is_free_callee(ast, w.unit.toks(), callee))
 			{
 				NodeId arg = kids[1];
-				if (is_temp_origin_init(ast, w.unit.toks(), arg) || is_temp_val_wrong_free(ast, w.unit.toks(), arg, temp_locals))
+				if (is_temp_origin_init(ast, w.unit.toks(), arg)
+					|| is_temp_val_wrong_free(ast, w.unit.toks(), arg,
+						temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-wrong-free",
 						"free called on temp-allocated memory -- remove the free; temp-allocated memory is reclaimed automatically, not with mem::free");
@@ -102,12 +112,14 @@ fn bool is_free_callee(Ast* ast, TokenList* toks, NodeId callee) @local
 	{
 		Node* pn = ast.node(callee);
 		if (toks.text_at(pn.last_tok) != "free") return false;
-		return pn.last_tok - pn.first_tok == 2 && toks.text_at(pn.first_tok) == "mem";
+		return pn.last_tok - pn.first_tok == 2
+			&& toks.text_at(pn.first_tok) == "mem";
 	}
 	return false;
 }
 
-fn bool is_temp_val_wrong_free(Ast* ast, TokenList* toks, NodeId val, List{String}* temp_locals) @local
+fn bool is_temp_val_wrong_free(Ast* ast, TokenList* toks,
+	NodeId val, List{String}* temp_locals) @local
 {
 	if (val == parser::NONE) return false;
 

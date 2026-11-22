@@ -70,7 +70,8 @@ fn Scopes build_scopes(Ast* ast, TokenList* toks, Allocator a)
 	return s;
 }
 
-fn void collect_fn_scopes(Ast* ast, TokenList* toks, NodeId id, Allocator a, Scopes* s) @local
+fn void collect_fn_scopes(Ast* ast, TokenList* toks, NodeId id, Allocator a,
+	Scopes* s) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
@@ -95,14 +96,18 @@ fn void collect_fn_scopes(Ast* ast, TokenList* toks, NodeId id, Allocator a, Sco
 }
 
 <* `sig` is a `SIGNATURE` id (or NONE, for a signature-less declaration). *>
-fn void collect_params(Ast* ast, TokenList* toks, NodeId sig, List{LocalDecl}* locals) @local
+fn void collect_params(Ast* ast,
+	TokenList* toks, NodeId sig, List{LocalDecl}* locals) @local
 {
 	if (sig == parser::NONE || ast.kind(sig) != NodeKind.SIGNATURE) return;
 	foreach (c : ast.children(sig))
 	{
 		if (ast.kind(c) != NodeKind.PARAM) continue;
 		Node* p = ast.node(c);
-		if (toks.type_at(p.tok) != IDENT && toks.type_at(p.tok) != CT_IDENT) continue;
+		if (toks.type_at(p.tok) != IDENT && toks.type_at(p.tok) != CT_IDENT)
+		{
+			continue;
+		}
 		NodeId[] pkids = ast.children(c);
 		NodeId type = pkids.len ? pkids[0] : parser::NONE;
 		locals.push({ .decl = c, .name = toks.text_at(p.tok), .type = type });
@@ -110,11 +115,16 @@ fn void collect_params(Ast* ast, TokenList* toks, NodeId sig, List{LocalDecl}* l
 }
 
 <* Walk a function body collecting every `VAR_DECL`, never descending into a nested `FN_DECL`/`MACRO_DECL`/`LAMBDA` (those get their own scope). *>
-fn void collect_locals(Ast* ast, TokenList* toks, NodeId id, List{LocalDecl}* locals) @local
+fn void collect_locals(Ast* ast,
+	TokenList* toks, NodeId id, List{LocalDecl}* locals) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL || n.kind == NodeKind.LAMBDA) return;
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
 	if (n.kind == NodeKind.VAR_DECL)
 	{
 		locals.push({ .decl = id, .name = toks.text_at(n.tok), .type = n.lhs });

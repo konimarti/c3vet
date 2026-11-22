@@ -1,7 +1,7 @@
 module c3vet::project_check_support;
 
-import c3vet;
 import c3::parser;
+import c3vet;
 import std::io::file;
 
 fn void verify_project_check(Check check, String path_, sz expected)
@@ -29,7 +29,10 @@ fn void verify_project_check(Check check, String path_, sz expected)
 	// unused-private-decl caches project files across calls for the rest of
 	// the Ctx it was built for; each test builds its own short-lived one.
 	defer c3vet::free_project_cache();
-	assert(diags.len() == expected, "%s: expected %d finding(s), got %d (%s; %s)", path_, expected, diags.len(), diags.len() > 0 ? diags[0].msg : "", diags.len() > 1 ? diags[1].msg : "");
+	assert(diags.len() == expected,
+		"%s: expected %d finding(s), got %d (%s; %s)", path_, expected,
+		diags.len(), diags.len() > 0 ? diags[0].msg : "", diags.len() > 1
+		? diags[1].msg : "");
 
 	uint want_count = 0;
 	foreach (token : u.toks().all)
@@ -37,5 +40,6 @@ fn void verify_project_check(Check check, String path_, sz expected)
 		if (token.type != LINE_COMMENT && token.type != BLOCK_COMMENT) continue;
 		if (token.text.contains("want \"")) want_count++;
 	}
-	assert(want_count == expected, "%s: // want annotations do not match expected findings", path_);
+	assert(want_count == expected,
+		"%s: // want annotations do not match expected findings", path_);
 }

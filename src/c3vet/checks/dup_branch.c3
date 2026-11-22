@@ -7,7 +7,8 @@ import std::core::mem::alloc;
 
 const Check DUP_BRANCH = {
 	.name          = "dup-branch",
-	.doc           = "an if/else-if chain repeats an earlier condition or block",
+	.doc           = "an if/else-if chain repeats "
+		"an earlier condition or block",
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -24,7 +25,8 @@ struct DupBranchWalker
 
 fn any make_dup_branch_state(Ctx* ctx, Unit* u, Allocator a) @local
 {
-	DupBranchWalker* w = alloc::new(a, DupBranchWalker, { .ctx = ctx, .unit = u });
+	DupBranchWalker* w = alloc::new(a,
+		DupBranchWalker, { .ctx = ctx, .unit = u });
 	w.else_if_continuations.init(a);
 	return w;
 }
@@ -32,7 +34,11 @@ fn any make_dup_branch_state(Ctx* ctx, Unit* u, Allocator a) @local
 fn bool visit_dup_branch(Ast* ast, NodeId id, any context) @local
 {
 	DupBranchWalker* w = (DupBranchWalker*)context;
-	if (ast.kind(id) != NodeKind.IF || is_else_if_continuation(&w.else_if_continuations, id)) return true;
+	if (ast.kind(id) != NodeKind.IF
+		|| is_else_if_continuation(&w.else_if_continuations, id))
+	{
+		return true;
+	}
 
 	List{NodeId} conditions;
 	List{NodeId} bodies;

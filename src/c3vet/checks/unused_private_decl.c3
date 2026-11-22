@@ -1,22 +1,27 @@
 <* Report unreferenced @private and @local declarations. *>
 module c3vet;
 
-import c3::parser;
 import c3::lexer;
+import c3::parser;
 import std::collections::list;
 import std::io;
 import std::io::path;
 
 const Check UNUSED_PRIVATE_DECL = {
 	.name          = "unused-private-decl",
-	.doc           = "a private or local declaration is never referenced in scope",
+	.doc           = "a private or local declaration "
+		"is never referenced in scope",
 	.tier          = Tier.PROJECT,
 	.default_on    = false,
 	.skip_on_error = true,
 	.run           = &run_unused_private_decl,
 };
 
-struct UnusedPrivateDeclWalker { Ctx* ctx; Unit* unit; }
+struct UnusedPrivateDeclWalker
+{
+	Ctx* ctx;
+	Unit* unit;
+}
 
 fn void run_unused_private_decl(Ctx* ctx, Unit* u)
 {
@@ -28,7 +33,11 @@ fn void run_unused_private_decl(Ctx* ctx, Unit* u)
 	foreach (id : parser::child_ids(u.ast(), u.root()))
 	{
 		Node* n = u.ast().node(id);
-		if (!n.kind.is_decl() || n.kind == NodeKind.MODULE || n.kind == NodeKind.IMPORT) continue;
+		if (!n.kind.is_decl() || n.kind == NodeKind.MODULE
+			|| n.kind == NodeKind.IMPORT)
+		{
+			continue;
+		}
 		String name = u.toks().text_at(n.tok);
 		if (name == "def" || name == "faultdef" || !name.len) continue;
 		DeclVis vis;
@@ -46,7 +55,8 @@ fn void run_unused_private_decl(Ctx* ctx, Unit* u)
 		if (!used)
 		{
 			w.ctx.report(w.unit, id, UNUSED_PRIVATE_DECL.name,
-				"@%s declaration '%s' is never referenced -- remove it, or make it accessible if other code should use it",
+				"@%s declaration '%s' is never referenced -- remove "
+				"it, or make it accessible if other code should use it",
 				vis == DeclVis.LOCAL ? "local" : "private", name);
 		}
 	}
@@ -71,7 +81,10 @@ fn String file_module(Ast* ast, TokenList* toks, NodeId root) @local
 	{
 		if (ast.kind(id) != NodeKind.MODULE) continue;
 		NodeId[] kids = ast.children(id);
-		if (kids.len && kids[0] != parser::NONE) return path_text(ast, toks, kids[0]);
+		if (kids.len && kids[0] != parser::NONE)
+		{
+			return path_text(ast, toks, kids[0]);
+		}
 	}
 	return "";
 }
@@ -163,10 +176,14 @@ fn String module_name_from_tokens(TokenList* toks, Allocator a) @local
 	return "";
 }
 
-fn bool project_module_has_name(UnusedPrivateDeclWalker* w, String mod, String name, uint own_tok) @local
+fn bool project_module_has_name(UnusedPrivateDeclWalker* w, String mod,
+	String name, uint own_tok) @local
 {
 	ensure_project_cache(w.ctx, w.unit.path);
-	if (!g_project_cache.files.len()) return source_has_name(w.unit.toks(), name, own_tok);
+	if (!g_project_cache.files.len())
+	{
+		return source_has_name(w.unit.toks(), name, own_tok);
+	}
 
 	bool found_module = false;
 	foreach (&f : g_project_cache.files)
@@ -174,7 +191,11 @@ fn bool project_module_has_name(UnusedPrivateDeclWalker* w, String mod, String n
 		if (f.mod_name != mod) continue;
 		found_module = true;
 		bool own_file = same_file(f.path, w.unit.path);
-		if (source_has_name_except(&f.toks, name, own_file ? own_tok : parser::NONE)) return true;
+		if (source_has_name_except(&f.toks, name, own_file ? own_tok
+			: parser::NONE))
+		{
+			return true;
+		}
 	}
 	if (!found_module) return source_has_name(w.unit.toks(), name, own_tok);
 	return false;
@@ -185,7 +206,8 @@ fn bool source_has_name(TokenList* toks, String name, uint skip_tok) @local
 	return source_has_name_except(toks, name, skip_tok);
 }
 
-fn bool source_has_name_except(TokenList* toks, String name, uint skip_tok) @local
+fn bool source_has_name_except(TokenList* toks, String name,
+	uint skip_tok) @local
 {
 	for (uint i = 0; i < toks.len(); i++)
 	{
@@ -249,7 +271,11 @@ fn void walk_sources(List{String}* files, String dir) @local
 	foreach (e : entries)
 	{
 		String name = e.basename();
-		if (name == "." || name == ".." || name.starts_with(".") || name == "build" || name == "out") continue;
+		if (name == "." || name == ".." || name.starts_with(".")
+			|| name == "build" || name == "out")
+		{
+			continue;
+		}
 		String full = string::tformat("%s/%s", dir, name);
 		if (file::is_dir(full))
 		{
