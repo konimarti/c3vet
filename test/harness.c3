@@ -31,8 +31,6 @@ import c3::parser;
 import c3vet;
 import std::collections::list;
 import std::io;
-import std::io::path;
-import std::os::env;
 
 struct Want
 {
@@ -121,109 +119,5 @@ fn void collect_wants(List{Want}* out, TokenList* toks) @local
 		sz end = rest.index_of_char('"') ?? -1;
 		if (end < 0) continue;
 		out.push({ .ln = t.ln, .text = rest[..(usz)end - 1] });
-	}
-}
-
-<*
- Run `check_name`, with only it enabled, over every `*.c3`/`*.c3i` file in the
- the sibling c3c checkout's `lib/` and `test/unit/`, and return the total
- finding count. This is a false-positive measurement: call it from a `@test`
- that asserts on the count you expect.
-
- Returns 0 immediately, without asserting, when `C3C_CHECKOUT` is not found,
- so it is safe to call on a machine without the checkout.
-
- Looks the check up in `c3vet::ALL_CHECKS`, so the check must be registered
- there. For an unregistered check call `measure_fp_check` below directly with
- its own `Check` literal.
-*>
-fn sz measure_fp(String check_name)
-{
-	sz idx = c3vet::find_check(check_name);
-	assert(idx >= 0, "no such check '%s'", check_name);
-	return measure_fp_check(c3vet::ALL_CHECKS[idx]);
-}
-
-<* Same sweep as `measure_fp`, but takes the `Check` literal directly. *>
-fn sz measure_fp_check(Check check)
-{
-	if (!has_checkout()) return 0;
-	String base = checkout_dir();
-
-	String lib_dir = string::tformat("%s/lib", base);
-	String unit_dir = string::tformat("%s/test/unit", base);
-	String[] files = find_c3_files(lib_dir);
-	String[] unit_files = find_c3_files(unit_dir);
-
-	Check[1] one = { check };
-
-	sz total = 0;
-	foreach (group : (String[][]){ files, unit_files })
-	{
-		foreach (f : group)
-		{
-			@pool()
-			{
-				char[]? bytes = file::load(tmem, f);
-				if (catch bytes) continue;
-
-				Unit u;
-				u.path = f;
-				u.src = (String)bytes;
-				u.parsed = parser::parse(tmem, u.src);
-				u.suppress.init(tmem);
-				u.suppress.collect(u.toks());
-
-				DiagnosticList diags;
-				diags.init(tmem);
-				Config cfg;
-				cfg.init(tmem);
-				Ctx ctx = { .config = &cfg, .out = &diags };
-				ctx.reported.init(tmem);
-
-				c3vet::run_checks(&ctx, &u, one[..]);
-				total += diags.len();
-			};
-		}
-	}
-	return total;
-}
-
-<*
- The sibling c3c checkout used for the FP sweep above, found via
- C3C_CHECKOUT (default: /home/km/Documents/c3c).
-*>
-fn String checkout_dir() => env::tget_var("C3C_CHECKOUT")
-	?? "/home/km/Documents/c3c";
-
-<* Whether the sibling c3c checkout (see `checkout_dir`) actually exists on this machine. *>
-fn bool has_checkout() => path::exists(path::tnew(checkout_dir()) ?? (Path){});
-
-<* Every *.c3 and *.c3i file under `dir`, recursively. Result in temp memory. *>
-fn String[] find_c3_files(String dir)
-{
-	List{String} out;
-	out.tinit();
-	walk_c3_files(&out, dir);
-	return out.to_tarray();
-}
-
-fn void walk_c3_files(List{String}* out, String dir) @local
-{
-	Path? p = path::tnew(dir);
-	if (catch p) return;
-	PathList? entries = path::ls(tmem, p);
-	if (catch entries) return;
-	foreach (e : entries)
-	{
-		String name = e.basename();
-		if (name == "." || name == "..") continue;
-		String full = string::tformat("%s/%s", dir, name);
-		if (file::is_dir(full))
-		{
-			walk_c3_files(out, full);
-			continue;
-		}
-		if (name.ends_with(".c3") || name.ends_with(".c3i")) out.push(full);
 	}
 }
