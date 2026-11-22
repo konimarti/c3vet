@@ -147,8 +147,8 @@ fn sz measure_fp(String check_name)
 <* Same sweep as `measure_fp`, but takes the `Check` literal directly. *>
 fn sz measure_fp_check(Check check)
 {
+	if (!has_checkout()) return 0;
 	String base = checkout_dir();
-	if (!path::exists(path::tnew(base) ?? (Path){})) return 0;
 
 	String lib_dir = string::tformat("%s/lib", base);
 	String unit_dir = string::tformat("%s/test/unit", base);
@@ -195,6 +195,9 @@ fn sz measure_fp_check(Check check)
 *>
 fn String checkout_dir() => env::tget_var("C3C_CHECKOUT")
 	?? "/home/km/Documents/c3c";
+
+<* Whether the sibling c3c checkout (see `checkout_dir`) actually exists on this machine. *>
+fn bool has_checkout() => path::exists(path::tnew(checkout_dir()) ?? (Path){});
 
 <* Every *.c3 and *.c3i file under `dir`, recursively. Result in temp memory. *>
 fn String[] find_c3_files(String dir)
