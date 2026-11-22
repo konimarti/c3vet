@@ -39,6 +39,19 @@ fn String escape_via_method_wrapper()
 	return s; // want "temp-allocated memory returned from a function"
 }
 
+struct Buf
+{
+	int[4] data;
+}
+
+fn int[] Buf.view(&self) => self.data[..];
+
+fn int[] escape_via_method_call_wrapper()
+{
+	Buf* p = mem::talloc(Buf);
+	return p.view(); // want "temp-allocated memory returned from a function"
+}
+
 fn int* valid_heap()
 {
 	int* p = mem::alloc(int);

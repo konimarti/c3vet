@@ -124,6 +124,24 @@ fn bool is_temp_val(Ast* ast, TokenList* toks,
 				break;
 			}
 		}
+		else if (cn.kind == NodeKind.CALL)
+		{
+			// A method call wrapping a temp local, e.g. `p.view()`: follow
+			// the receiver, not the call itself -- the call's own name
+			// (unlike `tconcat`/`tformat` et al.) carries no temp-origin
+			// signal of its own.
+			NodeId[] kids = ast.children(cur);
+			NodeId callee = kids.len ? kids[0] : parser::NONE;
+			if (callee != parser::NONE
+				&& ast.kind(callee) == NodeKind.MEMBER_ACCESS)
+			{
+				cur = ast.node(callee).lhs;
+			}
+			else
+			{
+				break;
+			}
+		}
 		else
 		{
 			break;
