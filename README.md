@@ -19,7 +19,7 @@ What it catches:
 - **C3 specific traps**, e.g. a `defer` that runs on every loop iteration instead of once, or a contract that can never fail.
 - **Non-idiomatic C3** (off by default), e.g. `mem::free(p)` where `free(p)` is enough, an explicit `= { }` on a local, or a catch-and-assign-default that should be `x = v ?? {};`.
 
-And more: 33 checks in total, 15 of them on by default. `c3vet --list-checks` shows them all.
+And more: 35 checks in total, 16 of them on by default. `c3vet --list-checks` shows them all.
 
 What the compiler doesn't give you:
 
