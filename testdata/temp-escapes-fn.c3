@@ -87,6 +87,103 @@ fn String escape_pool_init()
 	};
 }
 
+struct Holder
+{
+	int* ptr;
+}
+
+struct StrHolder
+{
+	String s;
+}
+
+fn Holder struct_field_returned()
+{
+	@pool()
+	{
+		Holder h;
+		h.ptr = mem::talloc(int);
+		return h; // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
+fn Holder struct_literal_returned()
+{
+	@pool()
+	{
+		return (Holder){ .ptr = mem::talloc(int) }; // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
+fn Holder struct_initialized_returned()
+{
+	@pool()
+	{
+		Holder h = { .ptr = mem::talloc(int) };
+		return h; // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
+fn StrHolder struct_literal_assigned_returned()
+{
+	@pool()
+	{
+		String s = string::tformat("%s", "x");
+		StrHolder h;
+		h = { s };
+		return h; // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
+fn StrHolder struct_set_in_nested_pool()
+{
+	@pool()
+	{
+		StrHolder h;
+		@pool()
+		{
+			h.s = string::tformat("%s", "x");
+		};
+		return h; // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
+macro @struct_from_macro()
+{
+	@pool()
+	{
+		return (StrHolder){ .s = string::tformat("%s", "x") }; // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
+fn StrHolder valid_struct_without_pool()
+{
+	StrHolder h;
+	h.s = string::tformat("%s", "x");
+	return h;
+}
+
+fn StrHolder valid_struct_holds_older_temp()
+{
+	String s = string::tformat("%s", "x");
+	@pool()
+	{
+		StrHolder h;
+		h.s = s;
+		return h;
+	};
+}
+
+fn StrHolder valid_struct_holds_copy()
+{
+	@pool()
+	{
+		StrHolder h;
+		h.s = string::tformat("%s", "x").copy(mem);
+		return h;
+	};
+}
+
 // The caller's pool owns the result.
 fn String valid_no_pool()
 {

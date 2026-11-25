@@ -19,7 +19,7 @@ What it catches:
 - **C3 specific traps**, e.g. a `defer` that runs on every loop iteration instead of once, or a contract that can never fail.
 - **Non-idiomatic C3** (off by default), e.g. `mem::free(p)` where `free(p)` is enough, an explicit `= { }` on a local, or a catch-and-assign-default that should be `x = v ?? {};`.
 
-And more: 35 checks in total, 16 of them on by default. `c3vet --list-checks` shows them all.
+And more: 34 checks in total, 16 of them on by default. `c3vet --list-checks` shows them all.
 
 What the compiler doesn't give you:
 
@@ -61,7 +61,7 @@ fn void bad_dup_branch(int x)
 ```
 
 ```
-$ c3vet --enable=temp-escapes-fn demo.c3
+$ c3vet demo.c3
 demo.c3:9:3: temp-allocated memory returned out of the @pool that frees it -- allocate it before the @pool, or copy it with a non-temp allocator [temp-escapes-fn]
 demo.c3:15:2: fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore [swallowed-fault]
 demo.c3:22:2: self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant [self-assign]
@@ -146,9 +146,8 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `empty-loop-body` | syntax | off | a loop whose body is empty and whose condition has no side effects |
 | `loop-no-advance` | syntax | on | a for loop with no increment clause whose condition variables never change in the body |
 | `unused-label` | syntax | on | a declared label never targeted by a break/continue in the same function |
-| `temp-escapes-fn` | local | off | temp-allocated memory returned out of the `@pool` that frees it |
+| `temp-escapes-fn` | local | on | temp-allocated memory returned out of the `@pool` that frees it |
 | `temp-escapes-pool` | local | on | temp-allocated memory inside `@pool` assigned to a variable declared outside the pool |
-| `temp-escapes-struct` | local | on | returned struct holds temp memory that a `@pool` frees |
 | `temp-wrong-free` | local | on | calling `free` on temp-allocated memory |
 | `temp-to-global` | local | on | temp-allocated memory assigned to a global or thread-local variable |
 | `swallowed-fault` | local | on | an empty catch branch silently discards a fault |

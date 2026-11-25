@@ -1,9 +1,8 @@
 <*
  Whether an expression's value is temp-allocator-derived.
 
- Used by `temp-escapes-fn`, `temp-escapes-pool`, `temp-escapes-struct`,
- `temp-wrong-free` and `temp-to-global`. Purely syntactic: no type
- resolution, no alias analysis. A call counts as temp-origin when either:
+ Used by `temp-escapes-fn`, `temp-escapes-pool`, `temp-wrong-free` and
+ `temp-to-global`. Purely syntactic: no type resolution, no alias analysis. A call counts as temp-origin when either:
 
    - its callee's final name is one of `mem`'s seven temp-allocation
      macros (`talloc`, `talloc_array`, `talloc_with_padding`, `tcalloc`,

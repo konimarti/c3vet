@@ -52,3 +52,27 @@ fn void test_pool_init_escapes()
 		outside = string::tformat("%s", "x"); // want "temp-allocated memory inside @pool assigned to variable declared outside pool"
 	};
 }
+
+struct StrHolder
+{
+	String s;
+}
+
+fn StrHolder test_literal_assigned_to_outer()
+{
+	StrHolder h;
+	StrHolder cast;
+	@pool()
+	{
+		h = { .s = string::tformat("%s", "x") }; // want "temp-allocated memory inside @pool assigned to variable declared outside pool"
+
+		String s = string::tformat("%s", "x");
+		cast = (StrHolder){ s }; // want "temp-allocated memory inside @pool assigned to variable declared outside pool"
+
+		StrHolder local_to_pool;
+		local_to_pool = { .s = s };
+
+		h = { .s = s.copy(mem) };
+	};
+	return h;
+}

@@ -206,7 +206,8 @@ fn void check_pool_assignments(TempEscapesPoolWalker* w, NodeId id,
 	{
 		NodeId target = n.lhs;
 		NodeId val = n.rhs;
-		if (val_is_temp(ast, toks, val, pool_temp_locals))
+		if (val_is_temp(ast, toks, val, pool_temp_locals)
+			|| init_list_has_temp(ast, toks, val, pool_temp_locals))
 		{
 			if (target_is_outer(ast, toks, target, b_first, b_last, locals))
 			{
@@ -233,8 +234,29 @@ fn void check_pool_assignments(TempEscapesPoolWalker* w, NodeId id,
 	}
 }
 
+<* True when `val` is an initializer list, maybe cast, with a temp element. *>
+fn bool init_list_has_temp(Ast* ast, TokenList* toks, NodeId val,
+	List{String}* temp_locals)
+{
+	while (val != parser::NONE && ast.kind(val) == NodeKind.CAST)
+	{
+		val = ast.node(val).rhs;
+	}
+	if (val == parser::NONE || ast.kind(val) != NodeKind.INIT_LIST)
+	{
+		return false;
+	}
+	foreach (elem : ast.children(val))
+	{
+		NodeId item = ast.kind(elem) == NodeKind.ASSIGN ? ast.node(elem).rhs
+			: elem;
+		if (val_is_temp(ast, toks, item, temp_locals)) return true;
+	}
+	return false;
+}
+
 fn bool val_is_temp(Ast* ast, TokenList* toks,
-	NodeId val, List{String}* pool_temp_locals) @local
+	NodeId val, List{String}* pool_temp_locals)
 {
 	if (val == parser::NONE) return false;
 	if (is_temp_origin_init(ast, toks, val)) return true;

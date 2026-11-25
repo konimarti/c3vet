@@ -1,7 +1,7 @@
 <*
  `temp-escapes-fn`: temp memory allocated inside a `@pool()` body and returned
- from inside it. Leaving the body frees the allocation, so the caller gets a
- dangling pointer or slice.
+ from inside it, directly or in a struct. Leaving the body frees the
+ allocation, so the caller gets a dangling pointer or slice.
 
  Returning temp memory allocated outside any `@pool` of this function is not
  reported: it lives until the caller's pool ends.
@@ -19,7 +19,7 @@ const Check TEMP_ESCAPES_FN = {
 	.doc           = "temp-allocated memory returned out of "
 		"the @pool that frees it",
 	.tier          = Tier.LOCAL,
-	.default_on    = false,
+	.default_on    = true,
 	.skip_on_error = true,
 	.visit         = &visit_temp_escapes_fn,
 	.make_state    = &make_temp_escapes_fn_state,
@@ -38,7 +38,10 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 {
 	TempEscapesFnWalker* w = (TempEscapesFnWalker*)ctx;
 	Node* n = ast.node(id);
-	if (n.kind != NodeKind.FN_DECL) return true;
+	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL)
+	{
+		return true;
+	}
 
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
 	TokenList* toks = w.unit.toks();
@@ -51,6 +54,7 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 		pool_temp_locals.tinit();
 		collect_temp_locals_in(ast, toks, ast.node(block_id), locals,
 			&pool_temp_locals);
+		collect_temp_holders(ast, toks, block_id, &pool_temp_locals);
 		check_returns_in_body(w, block_id, &pool_temp_locals);
 	}
 	return true;
@@ -74,7 +78,8 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,
 		NodeId val = n.lhs;
 		if (val != parser::NONE
 			&& (is_temp_origin_init(ast, w.unit.toks(), val)
-			|| is_temp_val(ast, w.unit.toks(), val, temp_locals)))
+			|| is_temp_val(ast, w.unit.toks(), val, temp_locals)
+			|| init_list_has_temp(ast, w.unit.toks(), val, temp_locals)))
 		{
 			w.ctx.report(w.unit, id, "temp-escapes-fn",
 				"temp-allocated memory returned out of the @pool that frees it -- allocate it before the @pool, or copy it with a non-temp allocator");
@@ -90,6 +95,56 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,
 	{
 		check_returns_in_body(w, n.lhs, temp_locals);
 		check_returns_in_body(w, n.rhs, temp_locals);
+	}
+}
+
+<*
+ Add to `temps` the variables under `id` that come to hold temp memory through
+ an initializer list or a field assignment.
+*>
+fn void collect_temp_holders(Ast* ast, TokenList* toks, NodeId id,
+	List{String}* temps) @local
+{
+	if (id == parser::NONE) return;
+	Node* n = ast.node(id);
+
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA || n.kind == NodeKind.INIT_LIST)
+	{
+		return;
+	}
+
+	if (n.kind == NodeKind.VAR_DECL
+		&& init_list_has_temp(ast, toks, n.rhs, temps))
+	{
+		temps.push(toks.text_at(n.tok));
+	}
+	else if (n.kind == NodeKind.ASSIGN)
+	{
+		NodeId target = n.lhs;
+		bool holds = init_list_has_temp(ast, toks, n.rhs, temps);
+		if (ast.kind(target) == NodeKind.MEMBER_ACCESS)
+		{
+			holds = holds || val_is_temp(ast, toks, n.rhs, temps);
+			target = ast.node(target).lhs;
+		}
+		if (holds && ast.kind(target) == NodeKind.IDENT)
+		{
+			temps.push(toks.text_at(ast.node(target).tok));
+		}
+	}
+
+	if (n.kind.is_list_bearing())
+	{
+		foreach (c : ast.children(id))
+		{
+			collect_temp_holders(ast, toks, c, temps);
+		}
+	}
+	else
+	{
+		collect_temp_holders(ast, toks, n.lhs, temps);
+		collect_temp_holders(ast, toks, n.rhs, temps);
 	}
 }
 
