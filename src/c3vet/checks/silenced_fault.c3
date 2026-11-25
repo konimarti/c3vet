@@ -45,7 +45,7 @@ fn bool visit_silenced_fault(Ast* ast, NodeId id, any context) @local
 		w.unit.root(), callee))
 	{
 		w.ctx.report(w.unit, id, SILENCED_FAULT.name,
-			"void cast discards an Optional result from '%s' -- handle the fault explicitly, or add a comment explaining why it's safe to discard",
+			"void cast discards an Optional result from '%s' -- handle the fault explicitly, or if discarding it is safe, say why and add // c3vet:ignore[silenced-fault]",
 			callee);
 	}
 	return true;

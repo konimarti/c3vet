@@ -87,12 +87,14 @@ fn bool visit_missing_format_attr(Ast* ast, NodeId id, any ctx) @local
 	if (fmt_params.len() == 0) return true;
 
 	bool reported = false;
-	check_body_calls(w, n.rhs, id, &fmt_params, varargs_name, &reported);
+	check_body_calls(w, n.rhs, id, params.array_view(), &fmt_params,
+		varargs_name, &reported);
 	return true;
 }
 
 fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
-	List{String}* fmt_params, String varargs_name, bool* reported) @local
+	NodeId[] params, List{String}* fmt_params, String varargs_name,
+	bool* reported) @local
 {
 	if (id == parser::NONE || *reported) return;
 	Ast* ast = w.unit.ast();
@@ -125,9 +127,21 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 						if (call_forwards_varargs(ast, w.unit.toks(), kids[1..],
 							varargs_name))
 						{
+							// the wrapper's own index, `&self` included
+							String fmt_name =
+								w.unit.toks().text_at(ast.node(fmt_arg).tok);
+							sz own_idx = 0;
+							foreach (i, p : params)
+							{
+								if (w.unit.toks().text_at(ast.node(p).tok)
+									== fmt_name)
+								{
+									own_idx = i;
+								}
+							}
 							w.ctx.report(w.unit, fn_node, "missing-format-attr",
 								"forwards its format string to '%s' (which has @format(%d)) but has no @format itself -- add @format(%d) to this function too, so c3c checks its call sites as well",
-								callee_name, fmt_idx, fmt_idx);
+								callee_name, fmt_idx, own_idx);
 							*reported = true;
 							return;
 						}
@@ -141,16 +155,18 @@ fn void check_body_calls(MissingFormatAttrWalker* w, NodeId id, NodeId fn_node,
 	{
 		foreach (c : ast.children(id))
 		{
-			check_body_calls(w, c, fn_node, fmt_params, varargs_name, reported);
+			check_body_calls(w, c, fn_node, params,
+				fmt_params, varargs_name, reported);
 			if (*reported) return;
 		}
 	}
 	else
 	{
-		check_body_calls(w, n.lhs, fn_node, fmt_params, varargs_name, reported);
+		check_body_calls(w, n.lhs, fn_node, params,
+			fmt_params, varargs_name, reported);
 		if (!*reported)
 		{
-			check_body_calls(w, n.rhs, fn_node,
+			check_body_calls(w, n.rhs, fn_node, params,
 				fmt_params, varargs_name, reported);
 		}
 	}

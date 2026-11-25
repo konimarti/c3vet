@@ -1,6 +1,7 @@
 <*
  `mem-copy-slice-to-array`: `mem::copy(&arr, src.ptr, n)` into a fixed array
- from a slice. Use slice assignment instead: `arr[:n] = src[:n];`.
+ from a slice. Use slice assignment instead: `arr[:count] = src[:count];`. Note
+ that `count` is in elements, while `mem::copy` takes `n` in bytes.
 
  The rule needs the declared type of `arr` and `src`, so it only fires when
  those types are visible in the same function. Off by default: this encodes a
@@ -16,7 +17,7 @@ const Check MEM_COPY_SLICE_TO_ARRAY = {
 	.name          = "mem-copy-slice-to-array",
 	.doc           =
 		"mem::copy of a slice into a fixed array: use slice assignment, "
-		"arr[:n] = src[:n]",
+		"which counts elements, not bytes",
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -71,5 +72,5 @@ fn void check_mem_copy_call(Ast* ast, NodeId fn_decl, NodeId id, any ctx)
 	if (slice_ptr_base(w.unit, fn_decl, kids[2]) == parser::NONE) return;
 
 	w.ctx.report(w.unit, id, "mem-copy-slice-to-array",
-		"mem::copy of a slice into an array -- use slice assignment: arr[:n] = src[:n];");
+		"mem::copy of a slice into an array -- use slice assignment, arr[:count] = src[:count], where count is in elements, not the bytes mem::copy takes");
 }

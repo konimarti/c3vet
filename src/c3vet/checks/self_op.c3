@@ -12,9 +12,7 @@ import std::core::mem::alloc;
 
 const Check SELF_OP = {
 	.name          = "self-op",
-	.doc           =
-		"self-operation: both operands are "
-		"identical, always producing a constant",
+	.doc           = "self-operation: both operands are identical",
 	.tier          = Tier.SYNTAX,
 	.default_on    = false,
 	.skip_on_error = true,

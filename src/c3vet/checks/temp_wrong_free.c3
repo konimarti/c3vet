@@ -83,7 +83,7 @@ fn void check_frees_in_body(TempWrongFreeWalker* w, NodeId id,
 						temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-wrong-free",
-						"free called on temp-allocated memory -- remove the free; temp-allocated memory is reclaimed automatically, not with mem::free");
+						"free called on temp-allocated memory -- remove the free; temp-allocated memory is reclaimed automatically");
 				}
 			}
 		}

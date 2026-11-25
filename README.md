@@ -65,8 +65,8 @@ $ c3vet demo.c3
 demo.c3:9:3: temp-allocated memory returned out of the @pool that frees it -- allocate it before the @pool, or copy it with a non-temp allocator [temp-escapes-fn]
 demo.c3:15:2: fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore [swallowed-fault]
 demo.c3:22:2: self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant [self-assign]
-demo.c3:28:7: duplicate condition in if/else-if chain -- this branch is unreachable; remove it, or use a switch if comparing one value against several cases [dup-branch]
-demo.c3:28:7: duplicate block body in if/else-if chain -- merge the conditions with ||, or use a switch if comparing one value against several cases [dup-branch]
+demo.c3:28:7: duplicate condition in if/else-if chain -- likely a typo: unless evaluating it changes the result, this branch is unreachable [dup-branch]
+demo.c3:28:7: duplicate block body in if/else-if chain -- check for a copy-paste slip; merge the conditions with || only when the branches are adjacent; merging across another branch changes which one runs [dup-branch]
 c3vet: 5 finding(s) in 1 file(s)
 ```
 
@@ -137,7 +137,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 |-------|----------|---------|-----------------|
 | `self-assign` | syntax | on | self-assignment: the right side is identical to the left |
 | `self-compare` | syntax | off | self-comparison: both sides of the comparison are identical |
-| `self-op` | syntax | off | self-operation: both operands are identical, always producing a constant |
+| `self-op` | syntax | off | self-operation: both operands are identical |
 | `dup-branch` | syntax | on | an if/else-if chain repeats an earlier condition or block |
 | `const-cond` | syntax | off | a control-flow condition is determined by literals alone |
 | `const-int-div-to-float` | syntax | on | integer division of literals is converted to a floating value |
@@ -162,7 +162,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `contract-tautology` | local | on | a `@require` clause compares an expression to itself with `==` |
 | `redundant-mem-free` | local | off | `mem::free` where `free` is enough: `mem::free(p)` is `free(p)`, and `mem::free(s.ptr)` on a slice is `free(s)` |
 | `redundant-zero-init` | local | off | an explicit `= { }` on a local, which is zero-initialized anyway |
-| `mem-copy-slice-to-array` | local | off | `mem::copy` of a slice into a fixed array: use `arr[:n] = src[:n]` |
+| `mem-copy-slice-to-array` | local | off | `mem::copy` of a slice into a fixed array: use slice assignment, which counts elements, not bytes |
 | `catch-default-operator` | local | off | catch-and-assign-default: use `x = v ?? {};` |
 | `missing-format-attr` | project | on | function forwarding a format string and varargs without `@format` attribute |
 | `unused-import` | project | off | an imported module is not referenced in this file |

@@ -59,7 +59,7 @@ fn bool visit_loop_no_advance(Ast* ast, NodeId id, any ctx) @local
 	if (!body_advances(ast, toks, body, name_arr))
 	{
 		w.ctx.report(w.unit, id, "loop-no-advance",
-			"loop condition never advances in the body -- update the loop variable, or it loops forever");
+			"loop condition never advances in the body -- update the loop variable, or only a break or return can end the loop");
 	}
 	return true;
 }

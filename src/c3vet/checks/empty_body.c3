@@ -58,7 +58,7 @@ fn void report_if_empty(EmptyBodyWalker* w, Ast* ast, NodeId body) @local
 	if (is_empty_commentless_block(ast, w.unit.toks(), body))
 	{
 		w.ctx.report(w.unit, body, "empty-body",
-			"empty body -- remove the dead statement, or fill in the intended body");
+			"empty body -- fill it in, comment why it is empty, or remove it while keeping any side effect of the condition");
 	}
 }
 

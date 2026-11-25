@@ -69,7 +69,7 @@ fn bool visit_empty_loop_body(Ast* ast, NodeId id, any ctx) @local
 		w.unit.toks(), cond))
 	{
 		w.ctx.report(w.unit, body, "empty-loop-body",
-			"empty loop body -- remove the loop, or add the work it's supposed to do");
+			"empty loop body -- add the missing work; before removing the loop, check that nothing relies on its increment or on waiting for it to end");
 	}
 	return true;
 }

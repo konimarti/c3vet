@@ -57,7 +57,7 @@ fn bool visit_contract_tautology(Ast* ast, NodeId id, any context) @local
 	if (contract_has_tautological_require(toks.all[(sz)ct].text))
 	{
 		w.ctx.report(w.unit, id, "contract-tautology",
-			"@require compares an expression to itself -- fix the comparison, it currently documents nothing");
+			"@require compares an expression to itself -- fix the comparison; if it is meant to reject a float NaN, write !math::is_nan(x)");
 	}
 	return true;
 }

@@ -31,3 +31,29 @@ fn void literal_forward(String fmt, args...)
 {
 	local_fmt("fixed", ...args);
 }
+
+// the advised index is the wrapper's own, not the callee's
+fn void bad_level_wrapper(int level, String fmt, args...) // want "add @format(1) to this function too"
+{
+	local_fmt(fmt, ...args);
+}
+
+fn void good_level_wrapper(int level, String fmt, args...) @format(1)
+{
+	local_fmt(fmt, ...args);
+}
+
+struct Logger
+{
+	int level;
+}
+
+fn void Logger.bad_log(&self, String fmt, args...) // want "add @format(1) to this function too"
+{
+	local_fmt(fmt, ...args);
+}
+
+fn void Logger.good_log(&self, String fmt, args...) @format(1)
+{
+	local_fmt(fmt, ...args);
+}

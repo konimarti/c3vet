@@ -58,8 +58,11 @@ fn bool visit_const_cond(Ast* ast, NodeId id, any context) @local
 	{
 		return true;
 	}
+	// $if replaces an if, never a loop
 	w.ctx.report(w.unit, id, CONST_COND.name,
-		"condition is determined by literals alone -- if this is a deliberate toggle, use $if for a compile-time condition instead");
+		"condition is determined by literals alone -- %s", kind == NodeKind.IF
+		? "if this is a deliberate toggle, use $if for a compile-time condition instead"
+		: "check the condition, or if an endless loop is meant, write while (true) with a break");
 	return true;
 }
 
