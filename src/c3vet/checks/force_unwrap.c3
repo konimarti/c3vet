@@ -1,4 +1,7 @@
-<* Warn about force-unwrapping outside tests and main. *>
+<*
+ Warn about force-unwrapping in a function that returns an Optional, where
+ `!` could have propagated the fault. Tests and main are exempt.
+*>
 module c3vet;
 
 import c3::parser;
@@ -6,7 +9,9 @@ import std::core::mem::alloc;
 
 const Check FORCE_UNWRAP = {
 	.name          = "force-unwrap",
-	.doc           = "force unwrap outside a test or main function",
+	.doc           =
+		"force unwrap in a function returning "
+		"an Optional, outside tests and main",
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -29,10 +34,22 @@ fn bool visit_force_unwrap(Ast* ast, NodeId id, any context) @local
 	Node* n = ast.node(id);
 	if (n.kind != NodeKind.FN_DECL) return true;
 	String name = w.unit.toks().text_at(n.tok);
-	bool allowed = name == "main"
+	bool exempt = name == "main"
 		|| signature_has_test_attr(ast, w.unit.toks(), n.lhs);
-	scan_force_unwrap_body(ast, w.unit.toks(), n.rhs, allowed, w);
+	scan_force_unwrap_body(ast,
+		w.unit.toks(), n.rhs, exempt, returns_optional(ast, n.lhs), w);
 	return true;
+}
+
+fn bool returns_optional(Ast* ast, NodeId sig) @local
+{
+	if (sig == parser::NONE || ast.kind(sig) != NodeKind.SIGNATURE)
+	{
+		return false;
+	}
+	NodeId[] kids = ast.children(sig);
+	return kids.len && kids[0] != parser::NONE
+		&& ast.kind(kids[0]) == NodeKind.TYPE_OPTIONAL;
 }
 
 fn bool signature_has_test_attr(Ast* ast, TokenList* toks, NodeId id) @local
@@ -49,8 +66,8 @@ fn bool signature_has_test_attr(Ast* ast, TokenList* toks, NodeId id) @local
 	return false;
 }
 
-fn void scan_force_unwrap_body(Ast* ast,
-	TokenList* toks, NodeId id, bool allowed, ForceUnwrapWalker* w) @local
+fn void scan_force_unwrap_body(Ast* ast, TokenList* toks, NodeId id,
+	bool exempt, bool optional, ForceUnwrapWalker* w) @local
 {
 	if (id == parser::NONE) return;
 	Node* n = ast.node(id);
@@ -58,22 +75,27 @@ fn void scan_force_unwrap_body(Ast* ast,
 	{
 		return;
 	}
-	if (!allowed && n.kind == NodeKind.FORCE_UNWRAP
+	// a lambda's `!` propagates to its own return type, not the enclosing one
+	if (n.kind == NodeKind.LAMBDA)
+	{
+		optional = returns_optional(ast, ast.children(id)[0]);
+	}
+	if (!exempt && optional && n.kind == NodeKind.FORCE_UNWRAP
 		&& toks.type_at(n.tok) == BANGBANG)
 	{
 		w.ctx.report(w.unit, id, FORCE_UNWRAP.name,
-			"force unwrap may panic outside tests and main -- handle the Optional with ?? for a default, or propagate it with the caller's own !");
+			"force unwrap may panic in a function that returns an Optional -- propagate the fault with !, or handle it with ?? for a default");
 	}
 	if (n.kind.is_list_bearing())
 	{
 		foreach (c : ast.children(id))
 		{
-			scan_force_unwrap_body(ast, toks, c, allowed, w);
+			scan_force_unwrap_body(ast, toks, c, exempt, optional, w);
 		}
 	}
 	else
 	{
-		scan_force_unwrap_body(ast, toks, n.lhs, allowed, w);
-		scan_force_unwrap_body(ast, toks, n.rhs, allowed, w);
+		scan_force_unwrap_body(ast, toks, n.lhs, exempt, optional, w);
+		scan_force_unwrap_body(ast, toks, n.rhs, exempt, optional, w);
 	}
 }
