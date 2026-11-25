@@ -20,6 +20,14 @@ fn void lambda_returns_optional()
 	Getter g = fn int?() => maybe()!!; // want "force unwrap may panic"
 }
 
+fn void? defer_cannot_propagate()
+{
+	defer
+	{
+		maybe()!!;
+	}
+}
+
 fn void? lambda_cannot_propagate()
 {
 	Plain p = fn int() => maybe()!!;

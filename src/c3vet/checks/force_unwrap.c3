@@ -75,6 +75,8 @@ fn void scan_force_unwrap_body(Ast* ast, TokenList* toks, NodeId id,
 	{
 		return;
 	}
+	// `!` is not allowed inside a defer
+	if (n.kind == NodeKind.DEFER) optional = false;
 	// a lambda's `!` propagates to its own return type, not the enclosing one
 	if (n.kind == NodeKind.LAMBDA)
 	{
