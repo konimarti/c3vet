@@ -79,6 +79,14 @@ fn String escape_inner_only()
 	};
 }
 
+fn String escape_pool_init()
+{
+	mem::@pool_init(mem, 1024)
+	{
+		return string::tformat("%s", "x"); // want "temp-allocated memory returned out of the @pool"
+	};
+}
+
 // The caller's pool owns the result.
 fn String valid_no_pool()
 {

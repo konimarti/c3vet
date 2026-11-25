@@ -42,3 +42,13 @@ fn void test_pool_escapes_via_wrapper()
 		outside = u; // want "temp-allocated memory inside @pool assigned to variable declared outside pool"
 	};
 }
+
+fn void test_pool_init_escapes()
+{
+	String outside;
+
+	@pool_init(mem, 1024)
+	{
+		outside = string::tformat("%s", "x"); // want "temp-allocated memory inside @pool assigned to variable declared outside pool"
+	};
+}

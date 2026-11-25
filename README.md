@@ -11,7 +11,7 @@ It never repeats a compiler warning.
 
 What it catches:
 
-- **Temp memory misuse.** Temp-allocated memory (`talloc`, or a stdlib `t`-prefixed convenience like `string::tformat`) that is returned out of the `@pool()` that frees it, escapes a `@pool()` body (directly or inside a returned struct), lands in a global, or goes to `mem::free`. All of these compile and are almost always bugs.
+- **Temp memory misuse.** Temp-allocated memory (`talloc`, or a stdlib `t`-prefixed convenience like `string::tformat`) that is returned out of the `@pool()` that frees it, escapes a `@pool()` body (directly or inside a returned struct), lands in a global, or goes to `mem::free`. All of these compile and are almost always bugs. `@pool_init()` bodies count as pools too.
 - **Swallowed faults.** `if (catch f()) {}` with an empty body drops the fault. C3 makes you handle an Optional but doesn't check that the handling does anything.
 - **Copy and paste slips** like `a = a`, `if (a == a)` or the same condition twice in an if/else-if chain.
 - **Dead code and stuck loops**, e.g. a loop that never advances, empty bodies, unused labels, imports and private declarations.

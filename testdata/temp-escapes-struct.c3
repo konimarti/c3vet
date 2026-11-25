@@ -74,6 +74,16 @@ fn StrHolder nested_pool()
 	};
 }
 
+fn StrHolder pool_init_struct()
+{
+	StrHolder h;
+	@pool_init(mem, 1024)
+	{
+		h.s = string::tformat("%s", "x"); // want "returned struct holds temp memory"
+	};
+	return h;
+}
+
 // The caller's pool owns these.
 fn Holder valid_no_pool()
 {

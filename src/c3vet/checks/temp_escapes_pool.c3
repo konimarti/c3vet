@@ -40,12 +40,14 @@ fn bool span_contains(uint b_first, uint b_last, uint a_first,
 	return b_first <= a_first && a_last <= b_last;
 }
 
+<* True for the macros that free temp memory when their body ends. *>
 fn bool is_pool_callee(Ast* ast, TokenList* toks, NodeId callee)
 {
 	if (callee == parser::NONE) return false;
 	NodeKind k = ast.kind(callee);
 	if (k != NodeKind.IDENT && k != NodeKind.PATH) return false;
-	return toks.text_at(ast.node(callee).last_tok) == "@pool";
+	String name = toks.text_at(ast.node(callee).last_tok);
+	return name == "@pool" || name == "@pool_init";
 }
 
 fn NodeId find_pool_block(Ast* ast, NodeId call_id)
