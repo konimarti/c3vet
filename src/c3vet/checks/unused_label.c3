@@ -1,6 +1,6 @@
 <*
- `unused-label`: a declared label (`FOO: while (...) { ... }`) never targeted
- by a `break`/`continue` naming it.
+ `unused-label`: a declared label (`while FOO: (...) { ... }`) never targeted
+ by a `break`/`continue`/`nextcase` naming it.
 
  Labels are function-scoped: each function is checked on its own, so a label
  used in one function does not count as used for a same-named label in another.
@@ -15,7 +15,7 @@ const Check UNUSED_LABEL = {
 	.name          = "unused-label",
 	.doc           =
 		"A declared label never targeted by a "
-		"break/continue in the same function.",
+		"break/continue/nextcase in the same function.",
 	.tier          = Tier.SYNTAX,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -68,7 +68,7 @@ fn bool visit_unused_label(Ast* ast, NodeId id, any ctx) @local
 	return false;
 }
 
-<* Collects every LABEL declaration and every labelled break/continue target under `id`. *>
+<* Collects every LABEL declaration and every labelled jump target under `id`. *>
 fn void collect_labels_and_targets(Ast* ast, TokenList* toks, NodeId id,
 	List{LoopLabel}* labels, List{String}* targets) @local
 {
@@ -83,6 +83,15 @@ fn void collect_labels_and_targets(Ast* ast, TokenList* toks, NodeId id,
 		if (n.lhs != parser::NONE)
 		{
 			targets.push(toks.text_at(ast.node(n.lhs).tok));
+		}
+	}
+
+	else if (n.kind == NodeKind.NEXTCASE)
+	{
+		NodeId label = ast.children(id)[0];
+		if (label != parser::NONE)
+		{
+			targets.push(toks.text_at(ast.node(label).tok));
 		}
 	}
 

@@ -145,7 +145,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `empty-body` | syntax | off | an if/while body that is an empty block with no comment inside |
 | `empty-loop-body` | syntax | off | a loop whose body is empty and whose condition has no side effects |
 | `loop-no-advance` | syntax | on | a for loop with no increment clause whose condition variables never change in the body |
-| `unused-label` | syntax | on | a declared label never targeted by a break/continue in the same function |
+| `unused-label` | syntax | on | a declared label never targeted by a break/continue/nextcase in the same function |
 | `temp-escapes-fn` | local | on | temp-allocated memory returned out of the `@pool` that frees it |
 | `temp-escapes-pool` | local | on | temp-allocated memory inside `@pool` assigned to a variable declared outside the pool |
 | `temp-wrong-free` | local | on | calling `free` on temp-allocated memory |

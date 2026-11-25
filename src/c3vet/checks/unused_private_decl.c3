@@ -1,4 +1,8 @@
-<* Report unreferenced @private and @local declarations. *>
+<*
+ Report unreferenced @private and @local declarations. Ones the compiler or
+ runtime reaches without their name (see `is_used_unnamed`) are left alone,
+ and so are methods: c3c ignores both modifiers on them.
+*>
 module c3vet;
 
 import c3::lexer;
@@ -43,6 +47,13 @@ fn void run_unused_private_decl(Ctx* ctx, Unit* u)
 		DeclVis vis;
 		if (!unique_visibility(indexed, name, &vis)) continue;
 		if (vis != DeclVis.PRIVATE && vis != DeclVis.LOCAL) continue;
+		if (is_method(u.ast(), n)) continue;
+		// a function's attributes are in its signature, not its body
+		if (is_used_unnamed(u.ast(), u.toks(),
+			n.kind == NodeKind.FN_DECL ? n.lhs : id))
+		{
+			continue;
+		}
 		bool used;
 		if (vis == DeclVis.LOCAL)
 		{
@@ -60,6 +71,46 @@ fn void run_unused_private_decl(Ctx* ctx, Unit* u)
 				vis == DeclVis.LOCAL ? "local" : "private", name);
 		}
 	}
+}
+
+<* A SIGNATURE's second child is the type a method belongs to. *>
+fn bool is_method(Ast* ast, Node* n) @local
+{
+	if (n.kind != NodeKind.FN_DECL && n.kind != NodeKind.MACRO_DECL)
+	{
+		return false;
+	}
+	if (n.lhs == parser::NONE || ast.kind(n.lhs) != NodeKind.SIGNATURE)
+	{
+		return false;
+	}
+	NodeId[] kids = ast.children(n.lhs);
+	return kids.len > 1 && kids[1] != parser::NONE;
+}
+
+<* True when an attribute under `id` makes the declaration used without a reference. *>
+fn bool is_used_unnamed(Ast* ast, TokenList* toks, NodeId id) @local
+{
+	if (id == parser::NONE) return false;
+	Node* n = ast.node(id);
+	for (uint i = n.first_tok; i <= n.last_tok; i++)
+	{
+		if (toks.type_at(i) != AT_IDENT) continue;
+		String attr = toks.text_at(i);
+		switch (attr)
+		{
+			case "@init":
+			case "@finalizer":
+			case "@export":
+			case "@test":
+			case "@benchmark":
+			case "@nostrip":
+				return true;
+			default:
+				break;
+		}
+	}
+	return false;
 }
 
 fn bool unique_visibility(DeclInfo[] decls, String name, DeclVis* vis) @local

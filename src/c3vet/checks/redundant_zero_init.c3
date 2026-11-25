@@ -35,7 +35,9 @@ fn bool visit_redundant_zero_init(Ast* ast, NodeId id, any ctx) @local
 {
 	RedundantZeroInitWalker* w = (RedundantZeroInitWalker*)ctx;
 	Node* n = ast.node(id);
+	// a const needs its value, so its `= { }` stays
 	if (n.kind == NodeKind.VAR_DECL && n.lhs != parser::NONE
+		&& w.unit.toks().type_at(n.first_tok) != CONST
 		&& n.rhs != parser::NONE && ast.kind(n.rhs) == NodeKind.INIT_LIST
 		&& ast.children(n.rhs).len == 0)
 	{
