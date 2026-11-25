@@ -12,7 +12,7 @@ import std::collections::list;
 import std::io;
 import std::sort;
 
-const String VERSION = "0.1.1";
+const String VERSION = "0.2.0";
 
 const int EXIT_CLEAN    = 0;
 const int EXIT_FINDINGS = 1;
