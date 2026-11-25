@@ -117,7 +117,7 @@ fn int main(String[] argv)
 
 	// Built once, only when some enabled check is Tier.PROJECT or above --
 	// a SYNTAX/LOCAL-only run never pays for indexing deps and the stdlib.
-	// Unlike Scopes/Flow (per-file, built lazily inside run_checks), the
+	// Unlike Scopes (per-file, built lazily inside run_checks), the
 	// declaration table is project-wide, so it must exist before the
 	// per-file loop below, not be built lazily inside it.
 	DeclTable table;

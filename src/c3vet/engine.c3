@@ -33,7 +33,6 @@ struct Unit
 	SuppressionSet suppress;
 	<* Non-null only when some enabled check needs LOCAL or above. *>
 	Scopes*        scopes;
-	Flow*          flow;
 }
 
 fn TokenList* Unit.toks(&self) @inline => &self.parsed.toks;
@@ -216,10 +215,10 @@ fn bool run_shared_visit(Ast* ast, NodeId id, any context) @local
  Run `enabled` over one unit.
 
  Parse failures are reported first, then checks run on whatever did parse.
- Builds `u.scopes`/`u.flow` once, lazily, the first time some enabled check
+ Builds `u.scopes` once, lazily, the first time some enabled check
  needs `Tier.LOCAL` or above -- a run with only SYNTAX checks never pays for
- either, and a unit already carrying them (e.g. a second `run_checks` call
- against the same `Unit`) is not rebuilt.
+ it, and a unit already carrying it (e.g. a second `run_checks` call against
+ the same `Unit`) does not rebuild it.
 
  Every check that visits the AST (`visit`/`make_state` set) shares ONE walk
  over the tree instead of each walking it separately -- with N checks
@@ -235,7 +234,6 @@ fn void run_checks(Ctx* ctx, Unit* u, Check[] enabled)
 		// vet_file's own @pool(), so nothing about them needs to outlive it.
 		u.scopes = alloc::new(tmem, Scopes,
 			build_scopes(u.ast(), u.toks(), tmem));
-		u.flow = alloc::new(tmem, Flow, build_flow(u.ast(), u.toks(), tmem));
 	}
 
 	Allocator a = tmem;

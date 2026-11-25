@@ -2,8 +2,7 @@
  Configuration: which checks run, and over what.
 
  Resolution order, loosest to strongest: each check's `default_on`, then the
- config file, then the command line. This is the per-check granularity c3c
- cannot offer -- it has 8 coarse warning knobs, each only no/yes/error.
+ config file, then the command line.
 *>
 module c3vet;
 

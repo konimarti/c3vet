@@ -44,8 +44,8 @@ import std::core::mem::alloc;
 const Check REDUNDANT_MODULE_SCOPE = {
 	.name          = "redundant-module-scope",
 	.doc           =
-		"a module qualifier that resolves the same with fewer "
-		"(or no) path segments",
+		"a module qualifier that resolves the "
+		"same with fewer (or no) path segments",
 	.tier          = Tier.PROJECT,
 	.default_on    = false,
 	.skip_on_error = true,

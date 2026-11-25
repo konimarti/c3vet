@@ -30,12 +30,10 @@ fn void engine_builds_scopes_only_for_local_tier()
 	Check[1] syntax_only = { syntax_check };
 	c3vet::run_checks(&ctx, &u, syntax_only[..]);
 	assert(!u.scopes, "a SYNTAX-only run must not build Scopes");
-	assert(!u.flow, "a SYNTAX-only run must not build Flow");
 
 	Check[1] local_only = { local_check };
 	c3vet::run_checks(&ctx, &u, local_only[..]);
 	assert(u.scopes != null, "a LOCAL-tier run must build Scopes");
-	assert(u.flow != null, "a LOCAL-tier run must build Flow");
 
 	NodeId fn_decl = parser::NONE;
 	foreach (i, n : u.ast().nodes) if (n.kind == NodeKind.FN_DECL)

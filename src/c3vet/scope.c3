@@ -139,3 +139,27 @@ fn void collect_locals(Ast* ast,
 		collect_locals(ast, toks, n.rhs, locals);
 	}
 }
+
+<*
+ True when some `IDENT` spelling `name` is reachable anywhere in `id`'s
+ subtree.
+
+ Does not distinguish a read from a write (`err = other;` counts as "used"),
+ which is the conservative direction for an unused-binding check: it would
+ rather miss a genuine non-use than flag a binding that is, in fact, touched.
+*>
+fn bool is_read(Ast* ast, TokenList* toks, NodeId id, String name)
+{
+	if (id == parser::NONE) return false;
+	Node* n = ast.node(id);
+	if (n.kind == NodeKind.IDENT && toks.text_at(n.tok) == name) return true;
+	if (n.kind.is_list_bearing())
+	{
+		foreach (c : ast.children(id)) if (is_read(ast, toks, c, name))
+		{
+			return true;
+		}
+		return false;
+	}
+	return is_read(ast, toks, n.lhs, name) || is_read(ast, toks, n.rhs, name);
+}
