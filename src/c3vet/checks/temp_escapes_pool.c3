@@ -40,7 +40,7 @@ fn bool span_contains(uint b_first, uint b_last, uint a_first,
 	return b_first <= a_first && a_last <= b_last;
 }
 
-fn bool is_pool_callee(Ast* ast, TokenList* toks, NodeId callee) @local
+fn bool is_pool_callee(Ast* ast, TokenList* toks, NodeId callee)
 {
 	if (callee == parser::NONE) return false;
 	NodeKind k = ast.kind(callee);
@@ -48,7 +48,7 @@ fn bool is_pool_callee(Ast* ast, TokenList* toks, NodeId callee) @local
 	return toks.text_at(ast.node(callee).last_tok) == "@pool";
 }
 
-fn NodeId find_pool_block(Ast* ast, NodeId call_id) @local
+fn NodeId find_pool_block(Ast* ast, NodeId call_id)
 {
 	foreach (c : ast.children(call_id))
 	{
@@ -118,6 +118,16 @@ fn void inspect_pool_block(TempEscapesPoolWalker* w, NodeId block_id,
 
 	List{String} pool_temp_locals;
 	pool_temp_locals.tinit();
+	collect_temp_locals_in(ast, toks, b, locals, &pool_temp_locals);
+
+	check_pool_assignments(w, block_id, b.first_tok, b.last_tok, locals,
+		&pool_temp_locals);
+}
+
+<* The temp-origin locals declared inside `block`. *>
+fn void collect_temp_locals_in(Ast* ast, TokenList* toks, Node* block,
+	LocalDecl[] locals, List{String}* out)
+{
 	foreach (d : locals)
 	{
 		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL)
@@ -125,17 +135,12 @@ fn void inspect_pool_block(TempEscapesPoolWalker* w, NodeId block_id,
 			continue;
 		}
 		Node* vn = ast.node(d.decl);
-		if (span_contains(b.first_tok, b.last_tok, vn.first_tok, vn.last_tok))
+		if (span_contains(block.first_tok, block.last_tok, vn.first_tok,
+			vn.last_tok) && is_temp_origin_init(ast, toks, vn.rhs))
 		{
-			if (is_temp_origin_init(ast, toks, vn.rhs))
-			{
-				pool_temp_locals.push(d.name);
-			}
+			out.push(d.name);
 		}
 	}
-
-	check_pool_assignments(w, block_id, b.first_tok, b.last_tok, locals,
-		&pool_temp_locals);
 }
 
 fn void check_pool_assignments(TempEscapesPoolWalker* w, NodeId id,

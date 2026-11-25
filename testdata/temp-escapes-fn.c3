@@ -3,40 +3,39 @@ module testdata_temp_escapes_fn;
 import std::core::mem;
 import std::core::string;
 
-fn int* escape_direct()
+fn int* escape_local()
 {
-	int* p = mem::talloc(int);
-	return p; // want "temp-allocated memory returned from a function"
+	@pool()
+	{
+		int* p = mem::talloc(int);
+		return p; // want "temp-allocated memory returned out of the @pool"
+	};
 }
 
-fn int* escape_via_local()
+fn String escape_direct()
 {
-	int* p = mem::talloc(int);
-	return p; // want "temp-allocated memory returned from a function"
+	@pool()
+	{
+		return string::tformat("%s", "x"); // want "temp-allocated memory returned out of the @pool"
+	};
 }
 
 fn int[] escape_via_slice()
 {
-	int[] arr = mem::talloc_array(int, 16);
-	return arr[1..4]; // want "temp-allocated memory returned from a function"
+	@pool()
+	{
+		int[] arr = mem::talloc_array(int, 16);
+		return arr[1..4]; // want "temp-allocated memory returned out of the @pool"
+	};
 }
 
 fn void* escape_via_tmem()
 {
-	void* p = make_buf(tmem);
-	return p; // want "temp-allocated memory returned from a function"
-}
-
-fn String escape_via_tformat()
-{
-	String s = string::tformat("%s-%s", "x", "y");
-	return s; // want "temp-allocated memory returned from a function"
-}
-
-fn String escape_via_method_wrapper()
-{
-	String s = "x".tconcat("y");
-	return s; // want "temp-allocated memory returned from a function"
+	@pool()
+	{
+		void* p = make_buf(tmem);
+		return p; // want "temp-allocated memory returned out of the @pool"
+	};
 }
 
 struct Buf
@@ -48,20 +47,74 @@ fn int[] Buf.view(&self) => self.data[..];
 
 fn int[] escape_via_method_call_wrapper()
 {
-	Buf* p = mem::talloc(Buf);
-	return p.view(); // want "temp-allocated memory returned from a function"
+	@pool()
+	{
+		Buf* p = mem::talloc(Buf);
+		return p.view(); // want "temp-allocated memory returned out of the @pool"
+	};
 }
 
-fn int* valid_heap()
+fn String escape_nested_pool(bool b)
 {
-	int* p = mem::alloc(int);
-	return p;
+	@pool()
+	{
+		String s = string::tformat("%s", "x");
+		@pool()
+		{
+			if (b) return s; // want "temp-allocated memory returned out of the @pool"
+		};
+	};
+	return "";
 }
 
-fn int valid_value()
+fn String escape_inner_only()
 {
-	int x = 123;
-	return x;
+	@pool()
+	{
+		@pool()
+		{
+			String s = string::tformat("%s", "x");
+			return s; // want "temp-allocated memory returned out of the @pool"
+		};
+	};
+}
+
+// The caller's pool owns the result.
+fn String valid_no_pool()
+{
+	String s = string::tformat("%s", "x");
+	return s;
+}
+
+fn String valid_no_pool_direct() => string::tformat("%s", "x");
+
+fn String valid_allocated_before_pool()
+{
+	String s = string::tformat("%s", "x");
+	@pool()
+	{
+		return s;
+	};
+}
+
+fn String valid_returned_after_pool()
+{
+	@pool()
+	{
+		String s = string::tformat("%s", "x");
+		io::printn(s);
+	};
+	String t = string::tformat("%s", "y");
+	return t;
+}
+
+fn String valid_copied_out()
+{
+	@pool()
+	{
+		String s = string::tformat("%s", "x");
+		return s.copy(mem);
+	};
 }
 
 fn void* make_buf(Allocator a) => mem::alloc(int, a);

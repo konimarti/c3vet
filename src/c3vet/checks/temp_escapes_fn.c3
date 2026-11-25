@@ -1,8 +1,10 @@
 <*
- `temp-escapes-fn`: a `talloc`/`tmem`-derived pointer or slice returned from a function.
+ `temp-escapes-fn`: temp memory allocated inside a `@pool()` body and returned
+ from inside it. Leaving the body frees the allocation, so the caller gets a
+ dangling pointer or slice.
 
- Returning memory allocated with the temporary allocator is a use-after-free
- once the temp arena resets.
+ Returning temp memory allocated outside any `@pool` of this function is not
+ reported: it lives until the caller's pool ends.
 *>
 module c3vet;
 
@@ -14,7 +16,8 @@ import std::io;
 
 const Check TEMP_ESCAPES_FN = {
 	.name          = "temp-escapes-fn",
-	.doc           = "temp-allocated memory returned from a function",
+	.doc           = "temp-allocated memory returned out of "
+		"the @pool that frees it",
 	.tier          = Tier.LOCAL,
 	.default_on    = false,
 	.skip_on_error = true,
@@ -38,23 +41,51 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 	if (n.kind != NodeKind.FN_DECL) return true;
 
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
-	List{String} temp_locals;
-	temp_locals.tinit();
-	foreach (d : locals)
+	find_pools(w, n.rhs, locals);
+	return true;
+}
+
+<* Check the returns of every outermost `@pool` body under `id`. *>
+fn void find_pools(TempEscapesFnWalker* w, NodeId id, LocalDecl[] locals) @local
+{
+	if (id == parser::NONE) return;
+	Ast* ast = w.unit.ast();
+	TokenList* toks = w.unit.toks();
+	Node* n = ast.node(id);
+
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
 	{
-		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL)
+		return;
+	}
+
+	if (n.kind == NodeKind.CALL)
+	{
+		NodeId[] kids = ast.children(id);
+		if (kids.len && is_pool_callee(ast, toks, kids[0]))
 		{
-			continue;
-		}
-		Node* vn = ast.node(d.decl);
-		if (is_temp_origin_init(ast, w.unit.toks(), vn.rhs))
-		{
-			temp_locals.push(d.name);
+			NodeId block_id = find_pool_block(ast, id);
+			if (block_id != parser::NONE)
+			{
+				List{String} pool_temp_locals;
+				pool_temp_locals.tinit();
+				collect_temp_locals_in(ast, toks, ast.node(block_id), locals,
+					&pool_temp_locals);
+				check_returns_in_body(w, block_id, &pool_temp_locals);
+				return; // that covered the nested pools too
+			}
 		}
 	}
 
-	check_returns_in_body(w, n.rhs, &temp_locals);
-	return true;
+	if (n.kind.is_list_bearing())
+	{
+		foreach (c : ast.children(id)) find_pools(w, c, locals);
+	}
+	else
+	{
+		find_pools(w, n.lhs, locals);
+		find_pools(w, n.rhs, locals);
+	}
 }
 
 fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,
@@ -73,11 +104,12 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,
 	if (n.kind == NodeKind.RETURN)
 	{
 		NodeId val = n.lhs;
-		if (val != parser::NONE && is_temp_val(ast, w.unit.toks(), val,
-			temp_locals))
+		if (val != parser::NONE
+			&& (is_temp_origin_init(ast, w.unit.toks(), val)
+			|| is_temp_val(ast, w.unit.toks(), val, temp_locals)))
 		{
 			w.ctx.report(w.unit, id, "temp-escapes-fn",
-				"temp-allocated memory returned from a function -- allocate with a non-temp allocator if the value must outlive this call");
+				"temp-allocated memory returned out of the @pool that frees it -- allocate it before the @pool, or copy it with a non-temp allocator");
 		}
 		return;
 	}
@@ -93,7 +125,7 @@ fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,
 	}
 }
 
-<* True when `val` resolves to a temp-origin local. *>
+<* True when `val` resolves to one of `temp_locals`. *>
 fn bool is_temp_val(Ast* ast, TokenList* toks,
 	NodeId val, List{String}* temp_locals) @local
 {
@@ -126,13 +158,11 @@ fn bool is_temp_val(Ast* ast, TokenList* toks,
 		}
 		else if (cn.kind == NodeKind.CALL)
 		{
-			// A method call wrapping a temp local, e.g. `p.view()`: follow
-			// the receiver, not the call itself -- the call's own name
-			// (unlike `tconcat`/`tformat` et al.) carries no temp-origin
-			// signal of its own.
+			// A view of a temp local, e.g. `p.view()`: follow the receiver.
+			// Only without arguments, so a copy-out like `s.copy(mem)` passes.
 			NodeId[] kids = ast.children(cur);
 			NodeId callee = kids.len ? kids[0] : parser::NONE;
-			if (callee != parser::NONE
+			if (kids.len == 1 && callee != parser::NONE
 				&& ast.kind(callee) == NodeKind.MEMBER_ACCESS)
 			{
 				cur = ast.node(callee).lhs;

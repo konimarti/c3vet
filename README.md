@@ -11,7 +11,7 @@ It never repeats a compiler warning.
 
 What it catches:
 
-- **Temp memory misuse.** Temp-allocated memory (`talloc`, or a stdlib `t`-prefixed convenience like `string::tformat`) that is returned, escapes a `@pool()` body, lands in a returned struct or a global, or goes to `mem::free`. All of these compile, and all of them are use after free.
+- **Temp memory misuse.** Temp-allocated memory (`talloc`, or a stdlib `t`-prefixed convenience like `string::tformat`) that is returned out of the `@pool()` that frees it, escapes a `@pool()` body, lands in a returned struct or a global, or goes to `mem::free`. All of these compile and are almost always bugs.
 - **Swallowed faults.** `if (catch f()) {}` with an empty body drops the fault. C3 makes you handle an Optional but doesn't check that the handling does anything.
 - **Copy and paste slips** like `a = a`, `if (a == a)` or the same condition twice in an if/else-if chain.
 - **Dead code and stuck loops**, e.g. a loop that never advances, empty bodies, unused labels, imports and private declarations.
@@ -34,8 +34,11 @@ import std::core::mem;
 
 fn int* bad_escape()
 {
-	int* p = mem::talloc(int);
-	return p;
+	@pool()
+	{
+		int* p = mem::talloc(int);
+		return p;
+	};
 }
 
 fn void bad_catch(int? risky)
@@ -59,11 +62,11 @@ fn void bad_dup_branch(int x)
 
 ```
 $ c3vet --enable=temp-escapes-fn demo.c3
-demo.c3:7:2: temp-allocated memory returned from a function -- allocate with a non-temp allocator if the value must outlive this call [temp-escapes-fn]
-demo.c3:12:2: fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore [swallowed-fault]
-demo.c3:19:2: self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant [self-assign]
-demo.c3:25:7: duplicate condition in if/else-if chain -- this branch is unreachable; remove it, or use a switch if comparing one value against several cases [dup-branch]
-demo.c3:25:7: duplicate block body in if/else-if chain -- merge the conditions with ||, or use a switch if comparing one value against several cases [dup-branch]
+demo.c3:9:3: temp-allocated memory returned out of the @pool that frees it -- allocate it before the @pool, or copy it with a non-temp allocator [temp-escapes-fn]
+demo.c3:15:2: fault is swallowed by an empty catch branch -- handle it, log it, or document why it's safe to ignore [swallowed-fault]
+demo.c3:22:2: self-assignment: this assigns the same value to itself -- remove it, or fix the typo if a different name was meant [self-assign]
+demo.c3:28:7: duplicate condition in if/else-if chain -- this branch is unreachable; remove it, or use a switch if comparing one value against several cases [dup-branch]
+demo.c3:28:7: duplicate block body in if/else-if chain -- merge the conditions with ||, or use a switch if comparing one value against several cases [dup-branch]
 c3vet: 5 finding(s) in 1 file(s)
 ```
 
@@ -143,7 +146,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `empty-loop-body` | syntax | off | a loop whose body is empty and whose condition has no side effects |
 | `loop-no-advance` | syntax | on | a for loop with no increment clause whose condition variables never change in the body |
 | `unused-label` | syntax | on | a declared label never targeted by a break/continue in the same function |
-| `temp-escapes-fn` | local | off | temp-allocated memory returned from a function |
+| `temp-escapes-fn` | local | off | temp-allocated memory returned out of the `@pool` that frees it |
 | `temp-escapes-pool` | local | on | temp-allocated memory inside `@pool` assigned to a variable declared outside the pool |
 | `temp-escapes-struct` | local | on | temp-allocated memory stored into a struct field and returned |
 | `temp-wrong-free` | local | on | calling `free` on temp-allocated memory |
