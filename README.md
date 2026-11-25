@@ -167,6 +167,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `missing-format-attr` | project | on | function forwarding a format string and varargs without `@format` attribute |
 | `unused-import` | project | off | an imported module is not referenced in this file |
 | `unused-private-decl` | project | off | a private or local declaration is never referenced in scope |
+| `redundant-module-scope` | project | off | a module qualifier that resolves the same with fewer (or no) path segments |
 
 `parse` is not a check you configure. It reports files that fail to parse, and later checks may be skipped for them.
 
