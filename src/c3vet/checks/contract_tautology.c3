@@ -69,10 +69,8 @@ fn bool contract_has_tautological_require(String contract_text) @local
 
 	List{Token} all;
 	all.tinit();
-	while (true)
+	while (try t = cl.next())
 	{
-		Token? t = cl.next();
-		if (catch t) break;
 		all.push(t);
 	}
 	Token[] toks = all.to_tarray();

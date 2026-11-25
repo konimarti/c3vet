@@ -140,8 +140,8 @@ fn void Ctx.emit(&self, Unit* u, uint first_tok, uint last_tok, String check,
 		return;
 	}
 
-	lexer::Token t = u.toks().tok(first_tok);
-	lexer::Token last = u.toks().tok(last_tok);
+	Token t = u.toks().tok(first_tok);
+	Token last = u.toks().tok(last_tok);
 	if (u.suppress.suppresses(check, t.ln, last.ln))
 	{
 		self.suppressed++;

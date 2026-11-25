@@ -333,7 +333,7 @@ fn String strip_bodies(String src, Allocator a) @local
 	uint n = (uint)toks.len();
 	for (uint i = 0; i < n; i++)
 	{
-		lexer::Token t = toks.tok(i);
+		Token t = toks.tok(i);
 		if (t.type == TokenType.LBRACE)
 		{
 			if (depth == 0) open_offset = (uint)(t.offset + t.len);

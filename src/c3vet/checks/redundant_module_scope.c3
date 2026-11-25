@@ -37,7 +37,6 @@
 *>
 module c3vet;
 
-import c3::lexer;
 import c3::parser;
 import std::collections::list;
 import std::core::mem::alloc;
