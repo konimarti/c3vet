@@ -1,4 +1,4 @@
-<* Warn when a try binding is never used in its branch. *>
+<* Warn when a try binding is never used in its condition or branch. *>
 module c3vet;
 
 import c3::parser;
@@ -6,7 +6,7 @@ import std::core::mem::alloc;
 
 const Check UNUSED_TRY_BINDING = {
 	.name          = "unused-try-binding",
-	.doc           = "a try binding is never read in its branch",
+	.doc           = "a try binding is never read in its condition or branch",
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -50,11 +50,29 @@ fn bool visit_unused_try_binding(Ast* ast, NodeId id, any context) @local
 		binding = operand;
 	}
 	String name = w.unit.toks().text_at(ast.node(binding).tok);
-	if (!c3vet::is_read(ast, w.unit.toks(), kids[1], name))
+	if (!c3vet::is_read(ast, w.unit.toks(), kids[1], name)
+		&& !is_read_after_and(ast,
+			w.unit.toks(), ast.node(expression).lhs, name))
 	{
 		w.ctx.report(w.unit, id, UNUSED_TRY_BINDING.name,
-			"try binding '%s' is never read in this branch -- use the binding, or drop it if the value isn't needed",
+			"try binding '%s' is never read -- use the binding, or drop it if the value isn't needed",
 			name);
 	}
 	return true;
+}
+
+<*
+ In `try x = a && b`, the parser puts the whole `a && b` under the `try`:
+ every operand but the leftmost (the value bound to `x`) can read `x`.
+*>
+fn bool is_read_after_and(Ast* ast, TokenList* toks, NodeId id,
+	String name) @local
+{
+	while (id != parser::NONE && ast.kind(id) == NodeKind.BINARY
+		&& toks.type_at(ast.node(id).tok) == AND)
+	{
+		if (c3vet::is_read(ast, toks, ast.node(id).rhs, name)) return true;
+		id = ast.node(id).lhs;
+	}
+	return false;
 }

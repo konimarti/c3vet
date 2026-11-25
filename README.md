@@ -151,7 +151,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `swallowed-fault` | local | on | an empty catch branch silently discards a fault |
 | `silenced-fault` | local | off | a void cast discards an Optional-returning call |
 | `unused-catch-binding` | local | off | a catch binding is never read in its branch |
-| `unused-try-binding` | local | on | a try binding is never read in its branch |
+| `unused-try-binding` | local | on | a try binding is never read in its condition or branch |
 | `force-unwrap` | local | off | force unwrap in a function returning an Optional, outside tests and main |
 | `float-equal` | local | off | `==` or `!=` compares a float literal or a float-declared variable |
 | `cond-not-bool` | local | off | if/while condition is a bare integer or pointer variable, not a boolean |
