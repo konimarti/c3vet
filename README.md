@@ -11,7 +11,7 @@ It never repeats a compiler warning.
 
 What it catches:
 
-- **Temp memory misuse.** Temp-allocated memory (`talloc`, or a stdlib `t`-prefixed convenience like `string::tformat`) that is returned out of the `@pool()` that frees it, escapes a `@pool()` body, lands in a returned struct or a global, or goes to `mem::free`. All of these compile and are almost always bugs.
+- **Temp memory misuse.** Temp-allocated memory (`talloc`, or a stdlib `t`-prefixed convenience like `string::tformat`) that is returned out of the `@pool()` that frees it, escapes a `@pool()` body (directly or inside a returned struct), lands in a global, or goes to `mem::free`. All of these compile and are almost always bugs.
 - **Swallowed faults.** `if (catch f()) {}` with an empty body drops the fault. C3 makes you handle an Optional but doesn't check that the handling does anything.
 - **Copy and paste slips** like `a = a`, `if (a == a)` or the same condition twice in an if/else-if chain.
 - **Dead code and stuck loops**, e.g. a loop that never advances, empty bodies, unused labels, imports and private declarations.
@@ -148,7 +148,7 @@ Output of `c3vet --list-checks`. Default: `on` runs without flags, `off` needs `
 | `unused-label` | syntax | on | a declared label never targeted by a break/continue in the same function |
 | `temp-escapes-fn` | local | off | temp-allocated memory returned out of the `@pool` that frees it |
 | `temp-escapes-pool` | local | on | temp-allocated memory inside `@pool` assigned to a variable declared outside the pool |
-| `temp-escapes-struct` | local | on | temp-allocated memory stored into a struct field and returned |
+| `temp-escapes-struct` | local | on | returned struct holds temp memory that a `@pool` frees |
 | `temp-wrong-free` | local | on | calling `free` on temp-allocated memory |
 | `temp-to-global` | local | on | temp-allocated memory assigned to a global or thread-local variable |
 | `swallowed-fault` | local | on | an empty catch branch silently discards a fault |

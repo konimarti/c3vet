@@ -41,51 +41,19 @@ fn bool visit_temp_escapes_fn(Ast* ast, NodeId id, any ctx) @local
 	if (n.kind != NodeKind.FN_DECL) return true;
 
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
-	find_pools(w, n.rhs, locals);
-	return true;
-}
-
-<* Check the returns of every outermost `@pool` body under `id`. *>
-fn void find_pools(TempEscapesFnWalker* w, NodeId id, LocalDecl[] locals) @local
-{
-	if (id == parser::NONE) return;
-	Ast* ast = w.unit.ast();
 	TokenList* toks = w.unit.toks();
-	Node* n = ast.node(id);
-
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
-		|| n.kind == NodeKind.LAMBDA)
+	List{NodeId} pools;
+	pools.tinit();
+	outermost_pool_blocks(ast, toks, n.rhs, &pools);
+	foreach (block_id : pools)
 	{
-		return;
+		List{String} pool_temp_locals;
+		pool_temp_locals.tinit();
+		collect_temp_locals_in(ast, toks, ast.node(block_id), locals,
+			&pool_temp_locals);
+		check_returns_in_body(w, block_id, &pool_temp_locals);
 	}
-
-	if (n.kind == NodeKind.CALL)
-	{
-		NodeId[] kids = ast.children(id);
-		if (kids.len && is_pool_callee(ast, toks, kids[0]))
-		{
-			NodeId block_id = find_pool_block(ast, id);
-			if (block_id != parser::NONE)
-			{
-				List{String} pool_temp_locals;
-				pool_temp_locals.tinit();
-				collect_temp_locals_in(ast, toks, ast.node(block_id), locals,
-					&pool_temp_locals);
-				check_returns_in_body(w, block_id, &pool_temp_locals);
-				return; // that covered the nested pools too
-			}
-		}
-	}
-
-	if (n.kind.is_list_bearing())
-	{
-		foreach (c : ast.children(id)) find_pools(w, c, locals);
-	}
-	else
-	{
-		find_pools(w, n.lhs, locals);
-		find_pools(w, n.rhs, locals);
-	}
+	return true;
 }
 
 fn void check_returns_in_body(TempEscapesFnWalker* w, NodeId id,

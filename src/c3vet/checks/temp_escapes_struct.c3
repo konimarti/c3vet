@@ -1,8 +1,10 @@
 <*
- `temp-escapes-struct`: a talloc stored into a field of a struct that is then returned.
+ `temp-escapes-struct`: temp memory allocated inside a `@pool()` body, stored
+ in a struct that leaves that body by being returned. The struct then points at
+ memory the pool has freed.
 
- Returning such a struct (by value or pointer) hands the caller a reference to
- memory that is freed at the next arena reset.
+ Temp memory allocated outside any `@pool` of this function is not reported:
+ it lives until the caller's pool ends.
 *>
 module c3vet;
 
@@ -13,8 +15,8 @@ import std::core::mem::alloc;
 
 const Check TEMP_ESCAPES_STRUCT = {
 	.name          = "temp-escapes-struct",
-	.doc           = "temp-allocated memory stored "
-		"into struct field and returned",
+	.doc           = "returned struct holds temp memory "
+		"that a @pool frees",
 	.tier          = Tier.LOCAL,
 	.default_on    = true,
 	.skip_on_error = true,
@@ -41,32 +43,28 @@ fn bool visit_temp_escapes_struct(Ast* ast, NodeId id, any ctx) @local
 	}
 
 	LocalDecl[] locals = w.unit.scopes.locals_in(id);
-	List{String} temp_locals;
-	temp_locals.tinit();
-	foreach (d : locals)
-	{
-		if (d.decl == parser::NONE || ast.kind(d.decl) != NodeKind.VAR_DECL)
-		{
-			continue;
-		}
-		Node* vn = ast.node(d.decl);
-		if (is_temp_origin_init(ast, w.unit.toks(), vn.rhs))
-		{
-			temp_locals.push(d.name);
-		}
-	}
-
+	TokenList* toks = w.unit.toks();
 	List{String} returned_vars;
 	returned_vars.tinit();
-	collect_returned_vars(w, n.rhs, &returned_vars, &temp_locals);
+	collect_returned_vars(w, n.rhs, &returned_vars);
 
-	// Check field assignments and struct initializers.
-	check_struct_escapes(w, n.rhs, &returned_vars, &temp_locals);
+	// Only temp memory allocated inside a pool is freed under the struct.
+	List{NodeId} pools;
+	pools.tinit();
+	outermost_pool_blocks(ast, toks, n.rhs, &pools);
+	foreach (block_id : pools)
+	{
+		List{String} pool_temp_locals;
+		pool_temp_locals.tinit();
+		collect_temp_locals_in(ast, toks, ast.node(block_id), locals,
+			&pool_temp_locals);
+		check_struct_escapes(w, block_id, &returned_vars, &pool_temp_locals);
+	}
 	return true;
 }
 
 fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
-	List{String}* returned_vars, List{String}* temp_locals) @local
+	List{String}* returned_vars) @local
 {
 	if (id == parser::NONE) return;
 	Ast* ast = w.unit.ast();
@@ -84,15 +82,6 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 		NodeId val = n.lhs;
 		if (val != parser::NONE)
 		{
-			// Direct return of struct literal containing temp memory:
-			NodeId peeled_lit = peel_casts(ast, val);
-			if (ast.kind(peeled_lit) == NodeKind.INIT_LIST
-				&& init_list_has_temp(ast, toks, peeled_lit, temp_locals))
-			{
-				w.ctx.report(w.unit, id, "temp-escapes-struct",
-					"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
-			}
-
 			// Return of local variable:
 			NodeId peeled_id = peel_expr(ast, toks, val);
 			if (peeled_id != parser::NONE
@@ -108,13 +97,13 @@ fn void collect_returned_vars(TempEscapesStructWalker* w, NodeId id,
 	{
 		foreach (c : ast.children(id))
 		{
-			collect_returned_vars(w, c, returned_vars, temp_locals);
+			collect_returned_vars(w, c, returned_vars);
 		}
 	}
 	else
 	{
-		collect_returned_vars(w, n.lhs, returned_vars, temp_locals);
-		collect_returned_vars(w, n.rhs, returned_vars, temp_locals);
+		collect_returned_vars(w, n.lhs, returned_vars);
+		collect_returned_vars(w, n.rhs, returned_vars);
 	}
 }
 
@@ -132,7 +121,18 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 		return;
 	}
 
-	if (n.kind == NodeKind.VAR_DECL)
+	// A struct literal returned from inside the pool.
+	if (n.kind == NodeKind.RETURN && n.lhs != parser::NONE)
+	{
+		NodeId lit = peel_casts(ast, n.lhs);
+		if (ast.kind(lit) == NodeKind.INIT_LIST
+			&& init_list_has_temp(ast, toks, lit, temp_locals))
+		{
+			w.ctx.report(w.unit, id, "temp-escapes-struct",
+				"returned struct holds temp memory that a @pool frees -- allocate it before the @pool, or copy it with a non-temp allocator");
+		}
+	}
+	else if (n.kind == NodeKind.VAR_DECL)
 	{
 		String var_name = toks.text_at(n.tok);
 		if (is_in_list(var_name, returned_vars))
@@ -142,7 +142,7 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 				&& init_list_has_temp(ast, toks, init_lit, temp_locals))
 			{
 				w.ctx.report(w.unit, id, "temp-escapes-struct",
-					"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
+					"returned struct holds temp memory that a @pool frees -- allocate it before the @pool, or copy it with a non-temp allocator");
 			}
 		}
 	}
@@ -162,7 +162,7 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 					&& struct_val_is_temp(ast, toks, val, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-escapes-struct",
-						"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
+						"returned struct holds temp memory that a @pool frees -- allocate it before the @pool, or copy it with a non-temp allocator");
 				}
 			}
 		}
@@ -177,7 +177,7 @@ fn void check_struct_escapes(TempEscapesStructWalker* w, NodeId id,
 					&& init_list_has_temp(ast, toks, init_lit, temp_locals))
 				{
 					w.ctx.report(w.unit, id, "temp-escapes-struct",
-						"temp-allocated memory stored into struct field and returned -- allocate the field's value with a non-temp allocator before storing it");
+						"returned struct holds temp memory that a @pool frees -- allocate it before the @pool, or copy it with a non-temp allocator");
 				}
 			}
 		}

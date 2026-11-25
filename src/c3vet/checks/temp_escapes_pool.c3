@@ -124,6 +124,47 @@ fn void inspect_pool_block(TempEscapesPoolWalker* w, NodeId block_id,
 		&pool_temp_locals);
 }
 
+<*
+ The bodies of the outermost `@pool` calls under `id`; each one spans the
+ pools nested in it. Nested functions and lambdas are not entered.
+*>
+fn void outermost_pool_blocks(Ast* ast, TokenList* toks, NodeId id,
+	List{NodeId}* out)
+{
+	if (id == parser::NONE) return;
+	Node* n = ast.node(id);
+
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
+		|| n.kind == NodeKind.LAMBDA)
+	{
+		return;
+	}
+
+	if (n.kind == NodeKind.CALL)
+	{
+		NodeId[] kids = ast.children(id);
+		if (kids.len && is_pool_callee(ast, toks, kids[0]))
+		{
+			NodeId block_id = find_pool_block(ast, id);
+			if (block_id != parser::NONE)
+			{
+				out.push(block_id);
+				return;
+			}
+		}
+	}
+
+	if (n.kind.is_list_bearing())
+	{
+		foreach (c : ast.children(id)) outermost_pool_blocks(ast, toks, c, out);
+	}
+	else
+	{
+		outermost_pool_blocks(ast, toks, n.lhs, out);
+		outermost_pool_blocks(ast, toks, n.rhs, out);
+	}
+}
+
 <* The temp-origin locals declared inside `block`. *>
 fn void collect_temp_locals_in(Ast* ast, TokenList* toks, Node* block,
 	LocalDecl[] locals, List{String}* out)
