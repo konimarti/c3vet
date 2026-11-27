@@ -389,14 +389,18 @@ fn void index_decl(DeclTable* t, Ast* ast, TokenList* toks, NodeId id,
 {
 	Node* n = ast.node(id);
 	String name = toks.text_at(n.tok);
-	if (!name.len || name[0] == '@') return;
+	bool is_attr = n.kind == NodeKind.ATTRDEF
+		|| n.kind == NodeKind.ATTRMACRO_DECL;
+	if (!name.len || (name[0] == '@' && !is_attr)) return;
 
 	NodeId attr_scope = id;
-	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL
-		|| n.kind == NodeKind.ATTRMACRO_DECL)
+	if (n.kind == NodeKind.FN_DECL || n.kind == NodeKind.MACRO_DECL)
 	{
 		attr_scope = n.lhs;
 	}
+	// An attribute definition's list also holds its expansion, so a
+	// `@local` there says nothing about the definition's own visibility.
+	if (is_attr) attr_scope = parser::NONE;
 
 	DeclVis vis = DeclVis.PUBLIC;
 	int format_param = -1;
