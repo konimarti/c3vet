@@ -50,6 +50,20 @@ fn void assign_global_via_wrapper()
 	g_str = string::tformat("%s", "x"); // want "temp-allocated memory assigned to a global or thread-local variable"
 }
 
+fn void valid_foreach_var(String[] xs)
+{
+	foreach (x : xs) x = string::tformat("%s", x);
+	foreach_r (i, x : xs) x = string::tformat("%s", i);
+}
+
+fn void valid_body_param(String[] xs)
+{
+	@each(xs; x)
+	{
+		x = string::tformat("%s", x);
+	};
+}
+
 fn void valid_heap_global()
 {
 	g_ptr = mem::alloc(int);

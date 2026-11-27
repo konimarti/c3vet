@@ -114,7 +114,7 @@ fn void collect_params(Ast* ast,
 	}
 }
 
-<* Walk a function body collecting every `VAR_DECL`, never descending into a nested `FN_DECL`/`MACRO_DECL`/`LAMBDA` (those get their own scope). *>
+<* Walk a function body collecting every `VAR_DECL`, `foreach` variable and macro body parameter, never descending into a nested `FN_DECL`/`MACRO_DECL`/`LAMBDA` (those get their own scope). *>
 fn void collect_locals(Ast* ast,
 	TokenList* toks, NodeId id, List{LocalDecl}* locals) @local
 {
@@ -128,6 +128,31 @@ fn void collect_locals(Ast* ast,
 	if (n.kind == NodeKind.VAR_DECL)
 	{
 		locals.push({ .decl = id, .name = toks.text_at(n.tok), .type = n.lhs });
+	}
+	if (n.kind == NodeKind.FOREACH || n.kind == NodeKind.FOREACH_R)
+	{
+		// children: collection, body, variable...
+		foreach (v : ast.children(id)[2..])
+		{
+			Node* vn = ast.node(v);
+			locals.push({
+				.decl = v, .name = toks.text_at(vn.tok),
+				.type = vn.lhs
+			});
+		}
+	}
+	if (n.kind == NodeKind.CALL)
+	{
+		// a PARAM child is a trailing body parameter: `@each(xs; x)`
+		foreach (c : ast.children(id))
+		{
+			if (ast.kind(c) != NodeKind.PARAM) continue;
+			NodeId[] pkids = ast.children(c);
+			locals.push({
+				.decl = c, .name = toks.text_at(ast.node(c).tok),
+				.type = pkids.len ? pkids[0] : parser::NONE
+			});
+		}
 	}
 	if (n.kind.is_list_bearing())
 	{
