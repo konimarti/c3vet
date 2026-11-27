@@ -10,7 +10,7 @@
   // package manager.
   "dependencies": [ "lexer", "parser" ],
   "authors": [ "Koni Marti <koni.marti@gmail.com>" ],
-  "version": "0.2.0",
+  "version": "0.2.1",
   "sources": [ "src/c3vet/**" ],
   // Testdata lives in testdata/ at the project root, NOT under test/:
   // those files are read by the harness, never compiled into the test
