@@ -71,21 +71,21 @@ fn uint integer_type_width(Ast* ast,
 	switch (*name)
 	{
 		case "char": *is_signed = false;
-			return 8;
+		             return 8;
 		case "ichar": *is_signed = true;
-			return 8;
+		              return 8;
 		case "short": *is_signed = true;
-			return 16;
+		              return 16;
 		case "ushort": *is_signed = false;
-			return 16;
+		               return 16;
 		case "int": *is_signed = true;
-			return 32;
+		            return 32;
 		case "uint": *is_signed = false;
-			return 32;
+		             return 32;
 		case "long": *is_signed = true;
-			return 64;
+		             return 64;
 		case "ulong": *is_signed = false;
-			return 64;
+		              return 64;
 		default: return 0;
 	}
 }
